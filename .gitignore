@@ -1,0 +1,4 @@
+*/*.cmo
+*/*.mly
+*/*.cmi
+/src/exec
