@@ -68,4 +68,18 @@ let rec alpha_conv (t:pterm)  (acc:(string*string) list): pterm =
   
 ;; 
 
-
+let rec substitution (x:string) (nterm:pterm) (t:pterm)  : pterm  = 
+  match t with
+  | Var y ->  if y = x then nterm else t  
+  | App (t1, t2) ->  App (substitution x nterm t1 , substitution x nterm t2   )
+  | Abs (y, m) ->   
+      if y<>x then 
+        Abs (y, substitution x nterm m  )
+      else
+        (* en gros l'idée c'est d'essayer de remplacer X par nterm   *)
+        (* let nv = new_var() in *)
+        (* Printf.printf "Trying to replace (%s) with new var (%s) : " x nv;   *)
+        print_pterm nterm;
+        substitution x (nterm) (m)
+          
+;;
