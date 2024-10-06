@@ -67,19 +67,34 @@ let rec alpha_conv (t:pterm)  (acc:(string*string) list): pterm =
       Abs(new_var_name,new_body)
   
 ;; 
+let rec free_vars (t:pterm) : string list = 
+  match t with
+  | Var x -> [x]
+  | App (t1, t2) -> free_vars t1 @ free_vars t2
+  | Abs (x, m) -> List.filter (fun y -> y <> x) (free_vars m)
+;;
+let print_string_list (l:string list) = 
+  Printf.printf "[ %s ]\n" (String.concat ", " l)
+;;
+
 
 let rec substitution (x:string) (nterm:pterm) (t:pterm)  : pterm  = 
   match t with
   | Var y ->  if y = x then nterm else t  
   | App (t1, t2) ->  App (substitution x nterm t1 , substitution x nterm t2   )
   | Abs (y, m) ->   
-      if y<>x then 
-        Abs (y, substitution x nterm m  )
+      if y=x then 
+        (*  λy. t et y == x =>  pas de substitution car X est protégé par l'abstraction (la variable est liée) *)
+        Abs (y,m )
       else
-        (* en gros l'idée c'est d'essayer de remplacer X par nterm   *)
-        (* let nv = new_var() in *)
-        (* Printf.printf "Trying to replace (%s) with new var (%s) : " x nv;   *)
-        print_pterm nterm;
-        substitution x (nterm) (m)
+        (* si y est apparrait dans le nterme (c'est à dire il peut y avoir des collisions)  faut renommer la variable y dans le corps m et substituion x dans le nouveau corps *)
+        if List.exists (fun v -> v = y) (free_vars nterm) then
+          (* Alpha-conversion si la variable liée est présente dans le terme à substituer *)
+          let nv = new_var () in
+          let m' = substitution y (Var nv) m in
+          Abs (nv, substitution x nterm m')
+        else
+          (* Sinon, on continue la substitution normalement dans le corps de l'abstraction *)
+          Abs (y, substitution x nterm m)
           
 ;;
