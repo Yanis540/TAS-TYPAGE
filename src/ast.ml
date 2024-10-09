@@ -78,10 +78,10 @@ let print_string_list (l:string list) =
 ;;
 
 
-let rec substitution (x:string) (nterm:pterm) (t:pterm)  : pterm  = 
+let rec substitution_v2 (x:string) (nterm:pterm) (t:pterm)  : pterm  = 
   match t with
   | Var y ->  if y = x then nterm else t  
-  | App (t1, t2) ->  App (substitution x nterm t1 , substitution x nterm t2   )
+  | App (t1, t2) ->  App (substitution_v2 x nterm t1 , substitution_v2 x nterm t2   )
   | Abs (y, m) ->   
       if y=x then 
         (*  λy. t et y == x =>  pas de substitution car X est protégé par l'abstraction (la variable est liée) *)
@@ -91,9 +91,22 @@ let rec substitution (x:string) (nterm:pterm) (t:pterm)  : pterm  =
         if List.exists (fun v -> v = y) (free_vars nterm) then
           (* Alpha-conversion si la variable liée est présente dans le terme à substituer *)
           let nv = new_var () in
-          let m' = substitution y (Var nv) m in
-          Abs (nv, substitution x nterm m')
+          let m' = substitution_v2 y (Var nv) m in
+          Abs (nv, substitution_v2 x nterm m')
         else
+          (* Sinon, on continue la substitution normalement dans le corps de l'abstraction *)
+          Abs (y, substitution_v2 x nterm m)
+          
+;;
+let rec substitution (x:string) (nterm:pterm) (t:pterm)  : pterm  = 
+  match t with
+  | Var y ->  if y = x then nterm else t  
+  | App (t1, t2) ->  App (substitution x nterm t1 , substitution x nterm t2   )
+  | Abs (y, m) ->   
+      if y=x then 
+        (*  λy. t et y == x =>  pas de substitution car X est protégé par l'abstraction (la variable est liée) *)
+        Abs (y,m )
+      else
           (* Sinon, on continue la substitution normalement dans le corps de l'abstraction *)
           Abs (y, substitution x nterm m)
           

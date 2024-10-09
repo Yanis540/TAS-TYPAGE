@@ -38,12 +38,12 @@ let someFuncToReplaceVariable = Abs(
 );;
 let varToReplace = "X";;
 let ntermToReplace = Abs("N",Abs("Z",App (Var("N"),Var("Z"))));;
-let substitued = Ast.substitution varToReplace ntermToReplace someFuncToReplaceVariable;;
+let substitued_v2 = Ast.substitution_v2 varToReplace ntermToReplace someFuncToReplaceVariable;;
 
 let t1 = Abs ("x", App (Var "x", Var "y"));;
 let free_vars_t1 = free_vars t1;;
 let t2 = Var "x";;
-let result = substitution "y" t2 t1;;
+let sub_t2_in_t1_result_v2 = substitution_v2 "y" t2 t1;;
 let main () = 
   (* print_pterm var_x ;
   print_pterm abs_ident ;
@@ -61,11 +61,11 @@ let main () =
   (* Printf.printf"Before Function  subs :  \n"; 
   print_pterm someFuncToReplaceVariable;
   Printf.printf"After Function  subs :  \n";
-  print_pterm substitued; *)
+  print_pterm substitued_v2; *)
   print_pterm t1;
   Printf.printf "Free variable list for t1 : "; 
   print_string_list free_vars_t1;
-  print_pterm result
+  print_pterm sub_t2_in_t1_result_v2
 ;;
 
 let _ = main ();;
