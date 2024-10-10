@@ -1,44 +1,21 @@
 open Ast ;;
 
 
-(* let var_x :Ast.pterm = Var ("x");;
-let abs_ident :Ast.pterm = Abs ("x", var_x);;
-let abs_nimp :Ast.pterm = Abs ("x", Var("y"));;
-let app_identite_x :Ast.pterm = App (abs_ident, var_x);;
-let var_y_renommer : Ast.pterm  = alpha_conv (Var("Y")) [] ;; 
-let abs_k : Ast.pterm = 
-  Abs(
-    "X",
-    Abs(
-      "Y", 
-      Var("X")
-    )
+let var_x :Ast.pterm = Var ("x");;
+let identity :Ast.pterm = Abs ("x", var_x);;
+let var_y_renamed : Ast.pterm  = alpha_conv (Var("Y")) [] ;; 
+let k : Ast.pterm = Abs("X",Abs("Y", Var("X")));;
+
+let k_renamed : Ast.pterm = alpha_conv (k) [];; 
+
+let abs_func : Ast.pterm = Abs("X",
+    Abs("Y", App(Var("X"),Var("Y")))
   )
 ;;
 
-let abs_k_renamed_x : Ast.pterm = alpha_conv (abs_k) [];; 
-
-let abs_func : Ast.pterm = 
-  Abs(
-    "X",
-    Abs(
-      "Y", 
-      App(Var("X"),Var("Y"))
-    )
-  )
-;;
-let abs_func_renamed : Ast.pterm =  alpha_conv (abs_func) [];; *)
-
-let someFuncToReplaceVariable = Abs(
-  "X",
-  Abs(
-    "Y",
-    App(Var("X"),Var("Y"))
-  )
-);;
 let varToReplace = "X";;
 let ntermToReplace = Abs("N",Abs("Z",App (Var("N"),Var("Z"))));;
-let substitued_v2 = Ast.substitution_v2 varToReplace ntermToReplace someFuncToReplaceVariable;;
+let abs_func_substitued_by_substitued_v2 = Ast.substitution_v2 varToReplace ntermToReplace abs_func;;
 
 let t1 = Abs ("x", App (Var "x", Var "y"));;
 let free_vars_t1 = free_vars t1;;
@@ -52,27 +29,21 @@ let combinator_s = Abs ("x", Abs ("y", Abs ("z", App (App (Var "x", Var "z"), Ap
 
 let example_skk = App (App (combinator_s, combinator_k), combinator_k);; 
 let main () = 
-  (* print_pterm var_x ;
-  print_pterm abs_ident ;
-  print_pterm abs_nimp ;
-  print_pterm app_identite_x ;
-  print_pterm var_y_renommer;
-  Printf.printf"Before Renaming :  \n";
-  print_pterm abs_k;
-  Printf.printf"After Renaming :  \n";
-  print_pterm abs_k_renamed_x;
-  Printf.printf"Before Renaming :  \n";
+  Printf.printf"Variable Y  renammed:  ";
+  print_pterm var_y_renamed;
+  Printf.printf" K :  ";
+  print_pterm k;
+  Printf.printf" \t -> ";
+  print_pterm k_renamed;
+  Printf.printf"Subs : "; 
   print_pterm abs_func;
-  Printf.printf"After Renaming :  \n";
-  print_pterm abs_func_renamed;*)
-  (* Printf.printf"Before Function  subs :  \n"; 
-  print_pterm someFuncToReplaceVariable;
-  Printf.printf"After Function  subs :  \n";
-  print_pterm substitued_v2; *)
+  Printf.printf"\t  -> ";
+  print_pterm abs_func_substitued_by_substitued_v2;
   (* print_pterm t1;
   Printf.printf "Free variable list for t1 : "; 
   print_string_list free_vars_t1; *)
-  (* print_pterm sub_t2_in_t1_result_v2 *)
+  Printf.printf "\n--- Substition v2 ---\n";
+  print_pterm sub_t2_in_t1_result_v2;
   Printf.printf "\n--- Réduction de l'exemple II ---\n";
   print_reduction_steps example_II;
    (* Exemple SKK *)
