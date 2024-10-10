@@ -111,3 +111,81 @@ let rec substitution (x:string) (nterm:pterm) (t:pterm)  : pterm  =
           Abs (y, substitution x nterm m)
           
 ;;
+
+(* Fonction pour vérifier si un terme est une valeur *)
+let rec is_value (t: pterm) : bool =
+  match t with
+  | Var(x ) -> true
+  | Abs (_, _) -> true
+  | App ( Var(x) , t' ) ->  is_value (t') 
+  | _ -> false   
+;;
+
+(* Fonction de réduction LtR-CbV *)
+(* Fonction de réduction LtR-CbV mise à jour *)
+let rec ltr_ctb_step (t : pterm) : pterm option =
+  match t with
+  | Var _ -> None  (* Une variable ne peut pas être réduite *)
+  
+  | Abs (x, body) -> 
+      (* Tenter de réduire le corps de l'abstraction *)
+      (match ltr_ctb_step body with
+       | Some new_body -> Some (Abs (x, new_body))
+       | None -> None)
+  
+  | App (t1, t2) ->
+      if not (is_value t1) then
+        (* Réduire le terme de gauche *)
+        (match ltr_ctb_step t1 with
+         | Some new_t1 -> Some (App (new_t1, t2))
+         | None -> None)
+      else if not (is_value t2) then
+        (* Si le terme de gauche est une valeur, réduire le terme de droite *)
+        (match ltr_ctb_step t2 with
+         | Some new_t2 -> Some (App (t1, new_t2))
+         | None -> None)
+      else
+        (* Si les deux termes sont des valeurs, tenter une Beta : réduction *)
+        (match t1 with
+         | Abs (x, body) -> 
+             (* Effectuer la substitution *)
+             Some (substitution x t2 body)
+         | Var v ->
+             (* Cas où t1 est une variable appliquée à une valeur *)
+             (* Cela dépend de votre interprétation, généralement non réductible *)
+             None
+         | App (_, _) ->
+             (* Si t1 est une application, vérifier si elle peut être réduite *)
+             (match ltr_ctb_step t1 with
+              | Some reduced_t1 -> Some (App (reduced_t1, t2))
+              | None -> None)
+          (* Pour les autres cas d'applications de valeurs, aucune réduction possible *)
+          | _ -> None
+         )
+;;
+
+
+(* Fonction pour effectuer des réductions multiples jusqu'à atteindre la forme normale *)
+let rec ltr_cbv_norm (t : pterm) : pterm =
+  match ltr_ctb_step t with
+  | Some t' -> ltr_cbv_norm t'
+  | None -> t
+;;
+(* Fonction de normalisation avec timeout (limite de nombre d'étapes) *)
+let rec ltr_cbv_norm_timeout (t : pterm) (limit : int) : pterm option =
+  if limit <= 0 then None
+  else
+    match ltr_ctb_step t with
+    | Some t' -> ltr_cbv_norm_timeout t' (limit - 1)
+    | None -> Some t
+;;
+
+let rec print_reduction_steps t =
+  print_pterm t;
+  match ltr_ctb_step t with
+  | Some t' ->
+      Printf.printf "=> ";
+      print_reduction_steps t'
+  | None ->
+      Printf.printf "=> (forme normale)\n"
+;;
