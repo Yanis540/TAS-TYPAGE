@@ -4,24 +4,15 @@ OCAMLC = ocamlc
 
 
 
-test : ast  test.ml
-	$(OCAMLC) -o ./exec/test ast.cmo  test.ml 
+test : ast type ./test/test_ast.ml ./test/test_type.ml
+	$(OCAMLC) -o ./exec/test_ast ast.cmo  ./test/test_ast.ml 
+	$(OCAMLC) -o ./exec/test_type ast.cmo type.cmo  ./test/test_type.ml 
 ast: ast.ml  
 	$(OCAMLC) -o ./exec/ast  ast.ml  
-prologTerm: parser prologTerm.ml
-	$(OCAMLC) -o prologTerm ast.cmo lexer.cmo parser.cmo prologTerm.ml
-
-testEval: parser testEval.ml
-	$(OCAMLC) -o testEval ast.cmo lexer.cmo parser.cmo testEval.ml
-eval: parser eval.ml
-	$(OCAMLC) -o eval ast.cmo lexer.cmo parser.cmo eval.ml
-parser: ast.ml lexer.mll parser.mly
-	$(OCAMLC) -c ast.ml
-	$(LEX_ML) -o lexer.ml lexer.mll
-	$(YACC_ML) -b parser parser.mly
-	$(OCAMLC) -c parser.mli
-	$(OCAMLC) -c lexer.ml
-	$(OCAMLC) -c parser.ml
+type: type.ml  
+	$(OCAMLC) -o ./exec/type  type.ml  
+type: ast type.ml  
+	$(OCAMLC) -o ./exec/type ast.cmo  type.ml  
 
 clean:
 	rm -f *.cmo

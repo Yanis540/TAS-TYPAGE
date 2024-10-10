@@ -1,4 +1,4 @@
-*/*.cmo
-*/*.mly
-*/*.cmi
+*.cmo
+*.mly
+*.cmi
 /src/exec
