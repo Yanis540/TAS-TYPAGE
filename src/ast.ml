@@ -1,7 +1,6 @@
 
 
 
-
 (*  Termes  *)
 type pterm = Var of string 
   | App of pterm * pterm  
@@ -172,14 +171,18 @@ let rec ltr_cbv_norm (t : pterm) : pterm =
   | None -> t
 ;;
 (* Fonction de normalisation avec timeout (limite de nombre d'étapes) *)
-let rec ltr_cbv_norm_timeout (t : pterm) (limit : int) : pterm option =
-  if limit <= 0 then None
-  else
-    match ltr_ctb_step t with
-    | Some t' -> ltr_cbv_norm_timeout t' (limit - 1)
-    | None -> Some t
+let rec ltr_cbv_norm_timeout (t : pterm) (time_limit : float) : pterm option =
+  let start_time = Sys.time () in
+  let rec norm t =
+    if Sys.time () -. start_time > time_limit then
+      None  (* Timeout atteint *)
+    else
+      match ltr_ctb_step t with
+      | Some t' -> norm t'
+      | None -> Some t  (* Terminé, forme normale atteinte *)
+  in
+  norm t
 ;;
-
 let rec print_reduction_steps t =
   print_pterm t;
   match ltr_ctb_step t with
@@ -187,5 +190,5 @@ let rec print_reduction_steps t =
       Printf.printf "=> ";
       print_reduction_steps t'
   | None ->
-      Printf.printf "=> (forme normale)\n"
+       Printf.printf "=> (forme normale)\n"
 ;;
