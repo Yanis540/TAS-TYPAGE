@@ -11,15 +11,12 @@ let ntermToReplace = Abs("N",Abs("Z",App (Var("N"),Var("Z"))));;
 let abs_func_substitued_by_substitued_v2 = Ast.substitution varToReplace ntermToReplace abs_func;;
 
 let t1 = Abs ("x", App (Var "x", Var "y"));;
-(* let free_vars_t1 = free_vars t1;; *)
 let t2 = Var "x";;
 let sub_t2_in_t1_result_v2 = substitution "y" t2 t1;;
 
 let example_II = App (Abs ("x", Var "x"), Abs ("y", Var "y"));;
-(* Définition des combinatoires K et S *)
 let combinator_k = Abs ("x", Abs ("y", Var "x"))
 let combinator_s = Abs ("x", Abs ("y", Abs ("z", App (App (Var "x", Var "z"), App (Var "y", Var "z")))))
-(* Combinateurs combinés *)
 let combinator_i = Abs ("x", Var "x") ;;
 let combinator_k = Abs ("x", Abs ("y", Var "x")) ;;
 let combinator_s = Abs ("x", Abs ("y", Abs ("z", App (App (Var "x", Var "z"), App (Var "y", Var "z"))))) ;;
@@ -78,13 +75,11 @@ let test_normalization (name, term) =
   | None -> 
       Printf.printf "Divergence détectée (limite de réduction atteinte).\n"
 ;;
-(* Fonction pour tester et afficher le résultat des opérations arithmétiques *)
-let test_arithmetic (name, term) =
+ (*let test_arithmetic (name, term) =
   Printf.printf "\n--- Test Arithmétique: %s ---\n" name;
-  (* Tenter de normaliser avec un timeout de 1 seconde *)
   match ltr_cbv_norm_timeout term 1.0 with
   | Some nf -> (
-      (* Printf.printf "Forme normale (avec timeout): %s\n" (pterm_to_string nf); *)
+       Printf.printf "Forme normale (avec timeout): %s\n" (pterm_to_string nf); 
       try
         let i = church_to_int nf in
         Printf.printf "Résultat en entier: %d\n" i
@@ -93,30 +88,18 @@ let test_arithmetic (name, term) =
     )
   | None -> 
       Printf.printf "Divergence détectée (timeout de 1 seconde atteinte).\n"
-;;
-(* Encodage de l'addition de 1 et 2: plus 1 2 *)
+;; 
 let plus_one_two = App (App (plus_, church_one), church_two) ;;
-
-(* Encodage de la multiplication de 2 et 3: mult 2 3 *)
 let mult_two_three = App (App (mult, church_two), church_three) ;;
-
-(* Encodage de successeur de 2: succ 2 *)
 let succ_two = App (succ, church_two) ;;
-
-(* Encodage de 3 + 2: plus 3 2 *)
 let plus_three_two = App (App (plus_, church_three), church_two) ;;
-
-(* Encodage de 2 * (plus 1 3): mult 2 (plus 1 3) *)
-let mult_two_plus_one_three = App (App (mult, church_two), App (App (plus_, church_one), church_three)) ;;
-
-(* Liste des tests arithmétiques *)
 let arithmetic_tests = [
   ("plus 1 2", plus_one_two);
   ("mult 2 3", mult_two_three);
   ("succ 2", succ_two);
   ("plus 3 2", plus_three_two);
   ("mult 2 (plus 1 3)", mult_two_plus_one_three);
-] ;;
+] ;; *)
 
 let main () = 
 
@@ -124,17 +107,12 @@ let main () =
   print_pterm abs_func;
   Printf.printf"\t  -> ";
   print_pterm abs_func_substitued_by_substitued_v2;
-  (* print_pterm t1;
-  Printf.printf "Free variable list for t1 : "; 
-  print_string_list free_vars_t1; *)
   Printf.printf "\n--- Substition  ---\n";
   print_pterm sub_t2_in_t1_result_v2;
   Printf.printf "\n--- Réduction de l'exemple II ---\n";
   print_reduction_steps example_II;
-   (* Exemple SKK *)
   Printf.printf "\n--- Réduction de l'exemple SKK ---\n";
   print_reduction_steps example_skk;
-   (* Normalisation avec timeout *)
   Printf.printf "\n--- Normalisation avec timeout ---\n";
   (match ltr_cbv_norm_timeout example_skk 1.0 with
   | Some nf -> 
@@ -144,10 +122,9 @@ let main () =
       Printf.printf "Divergence détectée (limite de réduction atteinte).\n"
   );
   Printf.printf "\n--- Normalisation avec timeout ---\n";
-  (* Exécuter les tests pour chaque exemple *)
   List.iter test_normalization examples;
-  (* Exécuter les tests pour chaque exemple *)
-  List.iter test_arithmetic arithmetic_tests
+  (* List.iter test_arithmetic arithmetic_tests  *)
+ 
 ;;
 
 let _ = main ();;

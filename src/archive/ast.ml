@@ -45,3 +45,42 @@ and free_vars_list (lst : pterm liste) : string list =
   | Empty -> []
   | Cons (hd, tail) -> free_vars hd @ free_vars_list tail
 ;; *)
+
+(* ! fonctionne pour les addition mais ne marche pas comme ltrcbv *)
+let rec ltr_ctb_step (t : pterm) : pterm option =  
+  match t with 
+  | Abs (x, body) -> 
+  (* Tenter de réduire le corps de l'abstraction *)
+  (match ltr_ctb_step body with
+   | Some new_body -> Some (Abs (x, new_body))
+   | None -> None)
+
+| App (t1, t2) ->
+  if not (is_value t1) then
+    (* Réduire le terme de gauche *)
+    (match ltr_ctb_step t1 with
+     | Some new_t1 -> Some (App (new_t1, t2))
+     | None -> None)
+  else if not (is_value t2) then
+    (* Si le terme de gauche est une valeur, réduire le terme de droite *)
+    (match ltr_ctb_step t2 with
+     | Some new_t2 -> Some (App (t1, new_t2))
+     | None -> None)
+  else
+    (* Si les deux termes sont des valeurs, tenter une Beta : réduction *)
+    (match t1 with
+     | Abs (x, body) -> 
+         (* Effectuer la substitution *)
+         Some (substitution x t2 body)
+     | Var v ->
+         (* Cas où t1 est une variable appliquée à une valeur *)
+         (* Cela dépend de votre interprétation, généralement non réductible *)
+         None
+     | App (_, _) ->
+         (* Si t1 est une application, vérifier si elle peut être réduite *)
+         (match ltr_ctb_step t1 with
+          | Some reduced_t1 -> Some (App (reduced_t1, t2))
+          | None -> None)
+      (* Pour les autres cas d'applications de valeurs, aucune réduction possible *)
+      | _ -> None
+     ) *)
