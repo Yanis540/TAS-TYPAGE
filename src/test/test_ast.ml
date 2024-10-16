@@ -8,12 +8,12 @@ let abs_func : Ast.pterm = Abs("X",Abs("Y", App(Var("X"),Var("Y"))))
 ;;
 let varToReplace = "X";;
 let ntermToReplace = Abs("N",Abs("Z",App (Var("N"),Var("Z"))));;
-let abs_func_substitued_by_substitued_v2 = Ast.substitution_v2 varToReplace ntermToReplace abs_func;;
+let abs_func_substitued_by_substitued_v2 = Ast.substitution varToReplace ntermToReplace abs_func;;
 
 let t1 = Abs ("x", App (Var "x", Var "y"));;
-let free_vars_t1 = free_vars t1;;
+(* let free_vars_t1 = free_vars t1;; *)
 let t2 = Var "x";;
-let sub_t2_in_t1_result_v2 = substitution_v2 "y" t2 t1;;
+let sub_t2_in_t1_result_v2 = substitution "y" t2 t1;;
 
 let example_II = App (Abs ("x", Var "x"), Abs ("y", Var "y"));;
 (* Définition des combinatoires K et S *)
@@ -127,7 +127,7 @@ let main () =
   (* print_pterm t1;
   Printf.printf "Free variable list for t1 : "; 
   print_string_list free_vars_t1; *)
-  Printf.printf "\n--- Substition v2 ---\n";
+  Printf.printf "\n--- Substition  ---\n";
   print_pterm sub_t2_in_t1_result_v2;
   Printf.printf "\n--- Réduction de l'exemple II ---\n";
   print_reduction_steps example_II;

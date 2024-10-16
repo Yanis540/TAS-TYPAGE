@@ -117,10 +117,7 @@ let rec substitute_in_system (v : string) (type_of_substitution : ptype) (eqs : 
 (* Fonction d'unification pour une étape avec accumulateur de substitutions *)
 let rec unify_step (eqs : equas) (substitutions_acc : env) : (equas * env) =
   match eqs with
-  | [] -> 
-      (* Printf.printf "Empty list of subs \n\t"; *)
-      (* List.iter (fun (s, t) -> Printf.printf "var: %s type: %s\n" s (ptype_to_string t)) substitutions; *)
-      ([], substitutions_acc)  (* S'il n'y a plus d'équations, retournez la liste vide et les substitutions *)
+  | [] ->  ([], substitutions_acc)  (* S'il n'y a plus d'équations, retournez la liste vide et les substitutions *)
   
   | (t1, t2)::rest when t1 = t2 -> 
       (* Si les deux types sont identiques, on supprime l'équation *)
@@ -133,7 +130,6 @@ let rec unify_step (eqs : equas) (substitutions_acc : env) : (equas * env) =
       unify_step substituted_system new_substitutions
   
   | (td, VarType x) :: rest when not (occur_check x td) -> 
-      (* Si le type droit est une variable qui n'apparaît pas dans le type gauche *)
       let substituted_system = substitute_in_system x td rest in
       let new_substitutions = (x, td) :: (List.map (fun (v, t) -> (v, substitute_type x td t)) substitutions_acc) in
       unify_step substituted_system new_substitutions
