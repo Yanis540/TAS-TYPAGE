@@ -1,19 +1,13 @@
 open Ast ;;
 
 
-let var_x :Ast.pterm = Var ("x");;
-let identity :Ast.pterm = Abs ("x", var_x);;
-let var_y_renamed : Ast.pterm  = alpha_conv (Var("Y")) [] ;; 
-let abs_func : Ast.pterm = Abs("X",Abs("Y", App(Var("X"),Var("Y"))))
-;;
+let abs_func : Ast.pterm = Abs("X",Abs("Y", App(Var("X"),Var("Y"))));;
 let varToReplace = "X";;
 let ntermToReplace = Abs("N",Abs("Z",App (Var("N"),Var("Z"))));;
 let abs_func_substitued_by_substitued_v2 = Ast.substitution varToReplace ntermToReplace abs_func;;
-
 let t1 = Abs ("x", App (Var "x", Var "y"));;
 let t2 = Var "x";;
 let sub_t2_in_t1_result_v2 = substitution "y" t2 t1;;
-
 let example_II = App (Abs ("x", Var "x"), Abs ("y", Var "y"));;
 let combinator_k = Abs ("x", Abs ("y", Var "x"))
 let combinator_s = Abs ("x", Abs ("y", Abs ("z", App (App (Var "x", Var "z"), App (Var "y", Var "z")))))
@@ -75,38 +69,10 @@ let test_normalization (name, term) =
   | None -> 
       Printf.printf "Divergence détectée (limite de réduction atteinte).\n"
 ;;
- (*let test_arithmetic (name, term) =
-  Printf.printf "\n--- Test Arithmétique: %s ---\n" name;
-  match ltr_cbv_norm_timeout term 1.0 with
-  | Some nf -> (
-       Printf.printf "Forme normale (avec timeout): %s\n" (pterm_to_string nf); 
-      try
-        let i = church_to_int nf in
-        Printf.printf "Résultat en entier: %d\n" i
-      with Failure msg ->
-        Printf.printf "Erreur : %s\n" msg
-    )
-  | None -> 
-      Printf.printf "Divergence détectée (timeout de 1 seconde atteinte).\n"
-;; 
-let plus_one_two = App (App (plus_, church_one), church_two) ;;
-let mult_two_three = App (App (mult, church_two), church_three) ;;
-let succ_two = App (succ, church_two) ;;
-let plus_three_two = App (App (plus_, church_three), church_two) ;;
-let arithmetic_tests = [
-  ("plus 1 2", plus_one_two);
-  ("mult 2 3", mult_two_three);
-  ("succ 2", succ_two);
-  ("plus 3 2", plus_three_two);
-  ("mult 2 (plus 1 3)", mult_two_plus_one_three);
-] ;; *)
+
 
 let main () = 
 
-  Printf.printf"Subs : "; 
-  print_pterm abs_func;
-  Printf.printf"\t  -> ";
-  print_pterm abs_func_substitued_by_substitued_v2;
   Printf.printf "\n--- Substition  ---\n";
   print_pterm sub_t2_in_t1_result_v2;
   Printf.printf "\n--- Réduction de l'exemple II ---\n";
@@ -123,7 +89,6 @@ let main () =
   );
   Printf.printf "\n--- Normalisation avec timeout ---\n";
   List.iter test_normalization examples;
-  (* List.iter test_arithmetic arithmetic_tests  *)
  
 ;;
 

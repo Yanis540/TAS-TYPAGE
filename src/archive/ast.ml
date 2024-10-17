@@ -83,4 +83,31 @@ let rec ltr_ctb_step (t : pterm) : pterm option =
           | None -> None)
       (* Pour les autres cas d'applications de valeurs, aucune réduction possible *)
       | _ -> None
-     ) *)
+     ) 
+
+
+ (*let test_arithmetic (name, term) =
+  Printf.printf "\n--- Test Arithmétique: %s ---\n" name;
+  match ltr_cbv_norm_timeout term 1.0 with
+  | Some nf -> (
+       Printf.printf "Forme normale (avec timeout): %s\n" (pterm_to_string nf); 
+      try
+        let i = church_to_int nf in
+        Printf.printf "Résultat en entier: %d\n" i
+      with Failure msg ->
+        Printf.printf "Erreur : %s\n" msg
+    )
+  | None -> 
+      Printf.printf "Divergence détectée (timeout de 1 seconde atteinte).\n"
+;; 
+let plus_one_two = App (App (plus_, church_one), church_two) ;;
+let mult_two_three = App (App (mult, church_two), church_three) ;;
+let succ_two = App (succ, church_two) ;;
+let plus_three_two = App (App (plus_, church_three), church_two) ;;
+let arithmetic_tests = [
+  ("plus 1 2", plus_one_two);
+  ("mult 2 3", mult_two_three);
+  ("succ 2", succ_two);
+  ("plus 3 2", plus_three_two);
+  ("mult 2 (plus 1 3)", mult_two_plus_one_three);
+] ;; *)

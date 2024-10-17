@@ -4,10 +4,11 @@ OCAMLC = ocamlc
 
 
 
-test : ast type ./test/test_ast.ml  ./test/test_type.ml   ./test/test_ast_2.ml
+test : ast type ./test/test_ast.ml  ./test/test_type.ml   ./test/test_ast_alpha.ml  ./test/test_ast_subs.ml
 	$(OCAMLC) -o ./exec/test_ast ast.cmo  ./test/test_ast.ml
 	$(OCAMLC) -o ./exec/test_type ast.cmo type.cmo  ./test/test_type.ml 
-	$(OCAMLC) -o ./exec/test_ast_2 ast.cmo type.cmo  ./test/test_ast_2.ml 
+	$(OCAMLC) -o ./exec/test_ast_alpha ast.cmo type.cmo  ./test/test_ast_alpha.ml 
+	$(OCAMLC) -o ./exec/test_ast_subs ast.cmo type.cmo  ./test/test_ast_subs.ml 
 ast: ast.ml  
 	$(OCAMLC) -o ./exec/ast  ast.ml  
 type: ast type.ml  

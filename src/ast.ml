@@ -62,7 +62,7 @@ let new_var (): string = var_counter := !var_counter +1;
   * acc : (old_variable_name,new_variable_name)
 *)
 type binding = string * string;; 
-type  rename_binding = binding list ;; 
+type rename_binding = binding list ;; 
 let acc_element_to_string (a:binding) = 
   match a with 
   | (o,n)->"( "^o^", "^n^" )" 
@@ -198,7 +198,6 @@ let rec is_value (t: pterm) : bool =
 
 (* ! Evaluation  *)
 (* Fonction de réduction LtR-CbV *)
-(* Fonction de réduction LtR-CbV mise à jour *)
 let rec ltr_ctb_step (t : pterm) : pterm option =
   match t with
   (* Beta reduction *)
