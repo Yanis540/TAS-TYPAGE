@@ -215,13 +215,27 @@ let rec ltr_ctb_step (t : pterm) : pterm option =
           | Some n' -> Some (App (m, n'))
           | None -> None)
         )
+  | Add (t1, t2) ->( match ltr_ctb_step t1 with 
+    | Some t1' -> Some (Add(t1',t2))
+    | None -> match  ltr_ctb_step t2 with 
+      Some t2'-> Some (Add(t1,t2'))
+      | None -> (match (t1,t2) with 
+        | (Int(n1),Int(n2))-> Some(Int(n1+n2))
+        | _ -> failwith "Add operands should be integers"
+      )
+    )
+  | Sub (t1, t2) ->( match ltr_ctb_step t1 with 
+    | Some t1' -> Some (Sub(t1',t2))
+    | None -> match  ltr_ctb_step t2 with 
+      Some t2'-> Some (Sub(t1,t2'))
+      | None -> (match (t1,t2) with 
+        | (Int(n1),Int(n2))-> Some(Int(n1-n2))
+        | _ -> failwith "Sub operands should be integers"
+      )
+    )
   | _ -> None  (* Une variable ne peut pas être réduite *)
 
-;;
-
-
-(* Fonction pour effectuer des réductions multiples jusqu'à atteindre la forme normale *)
-let rec ltr_cbv_norm (t : pterm) : pterm =
+and ltr_cbv_norm (t : pterm) : pterm =
   match ltr_ctb_step t with
   | Some t' -> ltr_cbv_norm t'
   | None -> t
@@ -235,9 +249,16 @@ let rec ltr_cbv_norm_timeout (t : pterm) (time_limit : float) : pterm option =
     else
       match ltr_ctb_step t with
       | Some t' -> norm t'
-      | None -> Some t  (* Terminé, forme normale atteinte *)
+      | None -> Some t  
+      (* Terminé, forme normale atteinte *)
   in
   norm t
+;;
+let rec ltr_cbv_norm_ (t : pterm)  : pterm =
+match ltr_cbv_norm_timeout t 1.0 with
+| Some nf -> nf
+| None -> 
+    failwith "Divergence détectée (limite de réduction atteinte).\n"
 ;;
 let rec print_reduction_steps t =
   print_pterm t;

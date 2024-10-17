@@ -70,7 +70,6 @@ let test_normalization (name, term) =
       Printf.printf "Divergence détectée (limite de réduction atteinte).\n"
 ;;
 
-
 let main () = 
 
   Printf.printf "\n--- Substition  ---\n";
