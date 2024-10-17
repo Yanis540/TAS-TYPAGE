@@ -27,6 +27,7 @@ let rec liste_to_string (lst: pterm liste) : string =
   let rec aux lst'= 
     (match lst' with 
     |  Empty-> "" 
+    |  Cons (hd,Empty)-> (pterm_to_string hd)
     |  Cons (hd,tail)-> (pterm_to_string hd) ^","^ (aux tail) 
     )  
   in "[" ^(aux lst)^ "]"  
@@ -196,6 +197,20 @@ let rec is_value (t: pterm) : bool =
   | _ -> false   
 ;;
 
+let is_list (t:pterm) : pterm liste= 
+  match t with 
+  | List(l) -> l 
+  | _ -> failwith "Error : Type not liste" 
+;; 
+let rec get_tail_list (l': pterm liste) : pterm option  =  (match l' with 
+  | Cons(h,Empty) -> Some(h)
+  | Cons(_,tail) -> get_tail_list tail 
+  | Empty -> failwith "Can not access Empty list"
+) ;;
+let get_head_list (l: pterm liste) : pterm option  =  (match l with 
+| Cons(h,_) -> Some(h)
+| Empty -> failwith "Can not access Empty list"
+) ;;
 (* ! Evaluation  *)
 (* Fonction de réduction LtR-CbV *)
 let rec ltr_ctb_step (t : pterm) : pterm option =
@@ -215,6 +230,7 @@ let rec ltr_ctb_step (t : pterm) : pterm option =
           | Some n' -> Some (App (m, n'))
           | None -> None)
         )
+  (* ! Entier *)
   | Add (t1, t2) ->( match ltr_ctb_step t1 with 
     | Some t1' -> Some (Add(t1',t2))
     | None -> match  ltr_ctb_step t2 with 
@@ -233,6 +249,14 @@ let rec ltr_ctb_step (t : pterm) : pterm option =
         | _ -> failwith "Sub operands should be integers"
       )
     )
+  (*! List *)
+  | Head (t) -> 
+    let l = is_list t in 
+    get_head_list l 
+  | Tail (t) -> 
+      let l = is_list t in 
+      get_tail_list l 
+    
   | Fix (Abs (x, body)) -> Some (substitution x (Fix (Abs (x, body))) body)
   | _ -> None  (* Une variable ne peut pas être réduite *)
 
