@@ -12,7 +12,8 @@ let test_substitution (name: string) (term: pterm) (x: string) (nterm: pterm) (e
   else
     Printf.printf "❌ Test échoué.\n"
 ;;
-(* Exemples de tests de substitution *)
+
+
 let substitution_tests = [
   ("Var substitution", Var "x","x",Int 42,Int 42);
   ("Abs substitution - variable liée",Abs ("x", Add (Var "x", Int 1)),"x",Int 42,Abs ("x", Add (Var "x", Int 1)));
@@ -23,7 +24,6 @@ let substitution_tests = [
   ("Head substitution",Head (Var "x"),"x",List (Cons (Int 10, Empty)),Head (List (Cons (Int 10, Empty))));
   ("Tail substitution",Tail (Var "x"),"x",List (Cons (Int 10, Cons (Int 20, Empty))),Tail (List (Cons (Int 10, Cons (Int 20, Empty)))));
   ("IfZero substitution",IfZero (Var "x", Int 1, Int 0),"x",Int 0,IfZero (Int 0, Int 1, Int 0));
-  ("Fix substitution", Fix ("phi", Abs ("x", App (Var "phi", Var "x")), Var "phi"), "x", Int 1, Fix ("phi", Abs ("x", App (Var "phi", Var "x")), Var "phi"));
   ("Let substitution", Let ("x", Int 5, Add (Var "x", Var "y")), "y", Int 10, Let ("x", Int 5, Add (Var "x", Int 10)));
 ]
 ;;

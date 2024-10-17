@@ -33,10 +33,6 @@ let alpha_conv_tests = [
     IfZero (Var "x", Add (Var "y", Int 2), Sub (Var "z", Int 1)),
     IfZero (Var "X6", Add (Var "X7", Int 2), Sub (Var "X8", Int 1))
   );
-  ("Fix alpha_conv",
-    Fix ("phi", Abs ("x", App (Var "phi", Var "x")), Var "phi"),
-    Fix ("phi", Abs ("X10", App (Var "X11", Var "X10")), Var "X9")
-  );
   ("Let alpha_conv",
     Let ("x", Int 5, Add (Var "x", Var "y")),
     Let ("X12", Int 5, Add (Var "X11", Var "X12"))

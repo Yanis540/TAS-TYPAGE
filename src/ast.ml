@@ -17,7 +17,7 @@ type pterm = Var of string
   | IfZero of pterm * pterm * pterm  
   | IfEmpty of pterm * pterm * pterm  
   (* 4.1 : Point fix *)
-  | Fix  of string * pterm *pterm
+  | Fix  of pterm
   (* 4.1 : Let *)
   | Let  of string * pterm *pterm
    
@@ -44,7 +44,7 @@ and pterm_to_string (t : pterm) : string =
   | Tail t -> "Tail ( " ^ (pterm_to_string t) ^ " )"
   | IfZero (cond, t1, t2) -> "IfZero ( " ^ (pterm_to_string cond) ^ " , " ^ (pterm_to_string t1) ^ " , " ^ (pterm_to_string t2) ^ " )"
   | IfEmpty (cond, t1, t2) -> "IfEmpty ( " ^ (pterm_to_string cond) ^ " , " ^ (pterm_to_string t1) ^ " , " ^ (pterm_to_string t2) ^ " )"
-  | Fix (var, t1, t2) -> "Fix ( " ^ var ^ " , " ^ (pterm_to_string t1) ^ " , " ^ (pterm_to_string t2) ^ " )"
+  | Fix (f) -> "Fix ( "  ^ (pterm_to_string f) ^ " )"
   | Let (var, t1, t2) -> "Let ( " ^ var ^ " = " ^ (pterm_to_string t1) ^ " in " ^ (pterm_to_string t2) ^ " )"
 ;;
 
@@ -112,7 +112,7 @@ let rec alpha_conv (t:pterm)  (acc:rename_binding): pterm =
   | IfZero(cond,cons,alt)-> IfZero(alpha_conv cond acc ,alpha_conv cons acc,alpha_conv alt acc)
   | IfEmpty(cond,cons,alt)-> IfEmpty(alpha_conv cond acc ,alpha_conv cons acc,alpha_conv alt acc)
   (* 4.1 : Point fix *)
-  | Fix(x,t1,t2)-> Fix(x,alpha_conv t1 acc,alpha_conv t2 acc)
+  | Fix(f)-> Fix(alpha_conv f acc)
   (* 4.1 : Let *)
   | Let(x,t1,t2)-> 
       let new_var_name= new_var() in 
@@ -169,7 +169,7 @@ let rec substitution (x:string) (nterm:pterm) (t:pterm)  : pterm  =
       let alt' = substitution x nterm alt in 
       IfEmpty (cond', cons', alt')
   (* 4.1 : Point fix *)
-  | Fix (phi, body, m) -> Fix (phi, (substitution x nterm body), m)
+  | Fix (f) -> Fix (substitution x nterm f)
   |  Let (y, e1, e2) ->
       let e1' = substitution x nterm e1 in
       if y = x then
@@ -233,6 +233,7 @@ let rec ltr_ctb_step (t : pterm) : pterm option =
         | _ -> failwith "Sub operands should be integers"
       )
     )
+  | Fix (Abs (x, body)) -> Some (substitution x (Fix (Abs (x, body))) body)
   | _ -> None  (* Une variable ne peut pas être réduite *)
 
 and ltr_cbv_norm (t : pterm) : pterm =
