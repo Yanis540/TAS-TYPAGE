@@ -30,6 +30,9 @@ let examples_if =[
   ("IfZero 1 1 2 ", (IfZero(Int(1), Int(1),Int(2))), Int 2);
   ("IfZero (1+2) 1 2 ", (IfZero(Add(Int(1),Int(2)), Int(1),Int(2))), Int 2);
   ("IfZero (1-1) 1 2 ", (IfZero(Sub(Int(1),Int(1)), Int(1),Int(2))), Int 1);
+  ("IfEmpty ([]) 1 2 ", (IfEmpty(List(Empty), Int(1),Int(2))), Int 1);
+  ("IfEmpty ([1]) 1 2 ", (IfEmpty(List(Cons(Int(1),Empty)), Int(1),Int(2))), Int 2);
+  ("IfEmpty (1) 1 2 ", (IfEmpty(Int(1), Int(1),Int(2))), Int 2);
 ] 
 (*! Fix  *)
 let fact = Fix (Abs ("ϕ", Abs ("n",

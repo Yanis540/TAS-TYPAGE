@@ -259,11 +259,15 @@ let rec ltr_ctb_step (t : pterm) : pterm option =
   (*4.1 If *)
   | IfZero (Int(0),cons,alt) -> Some(cons) 
   | IfZero (Int(n),cons,alt) -> Some(alt) 
-  | IfZero (cond,cons,alt) -> ( 
-    match ltr_ctb_step cond with 
+  | IfZero (cond,cons,alt) -> (match ltr_ctb_step cond with 
     | Some cond' -> Some (IfZero (cond',cons,alt)  ) 
-    | None -> None 
+    | None -> failwith "If condition should be an integer " 
     )
+  | IfEmpty (List(t),cons,alt) -> ( match t with 
+    | Empty -> Some(cons) 
+    | Cons(_,_) -> Some (alt)
+  )
+  | IfEmpty (_,_,_) -> failwith "If condition should be a list element" 
     
   | Fix (Abs (x, body)) -> Some (substitution x (Fix (Abs (x, body))) body)
   | _ -> None  (* Une variable ne peut pas être réduite *)
