@@ -9,6 +9,7 @@ type pterm = Var of string
   | Int of int 
   | Add of pterm * pterm 
   | Sub of pterm * pterm 
+  | Mult of pterm * pterm 
   (* 4.1 : list *)
   | List of pterm liste  
   | Head of pterm  
@@ -40,6 +41,7 @@ and pterm_to_string (t : pterm) : string =
   | Int n -> string_of_int n
   | Add (t1, t2) -> "Add ( " ^ (pterm_to_string t1) ^ " , " ^ (pterm_to_string t2) ^ " )"
   | Sub (t1, t2) -> "Subs ( " ^ (pterm_to_string t1) ^ " , " ^ (pterm_to_string t2) ^ " )"
+  | Mult (t1, t2) -> "Mult ( " ^ (pterm_to_string t1) ^ " , " ^ (pterm_to_string t2) ^ " )"
   | List lst -> liste_to_string lst
   | Head t -> "Head ( " ^ (pterm_to_string t) ^ " )"
   | Tail t -> "Tail ( " ^ (pterm_to_string t) ^ " )"
@@ -105,6 +107,7 @@ let rec alpha_conv (t:pterm)  (acc:rename_binding): pterm =
   | Int(n) -> Int n 
   | Add(t1,t2) -> Add(alpha_conv t1 acc, alpha_conv t2 acc)
   | Sub(t1,t2) -> Sub(alpha_conv t1 acc, alpha_conv t2 acc)
+  | Mult(t1,t2) -> Mult(alpha_conv t1 acc, alpha_conv t2 acc)
   (* 4.1 : list *)
   | List l  ->  List(alpha_conv_liste l acc) 
   | Head(t) -> Head(alpha_conv t acc)
@@ -153,6 +156,7 @@ let rec substitution (x:string) (nterm:pterm) (t:pterm)  : pterm  =
   | Int n -> Int n  (* Les entiers ne nécessitent pas de substitution *)
   | Add (t1, t2) -> Add (substitution x nterm t1, substitution x nterm t2)  (* Substitution dans les additions *)
   | Sub (t1, t2) -> Sub (substitution x nterm t1, substitution x nterm t2)  (* Substitution dans les soustractions *)
+  | Mult (t1, t2) -> Mult (substitution x nterm t1, substitution x nterm t2)  (* Substitution dans les soustractions *)
   (* 4.1 : list *)
   | List l -> List (substitution_liste x nterm l)  (* Substitution dans les listes *)
   | Head t -> Head (substitution x nterm t)  (* Substitution dans l'opération Head *)
@@ -249,6 +253,15 @@ let rec ltr_ctb_step (t : pterm) : pterm option =
         | _ -> failwith "Sub operands should be integers"
       )
     )
+  | Mult (t1, t2) ->( match ltr_ctb_step t1 with 
+    | Some t1' -> Some (Mult(t1',t2))
+    | None -> match  ltr_ctb_step t2 with 
+      Some t2'-> Some (Mult(t1,t2'))
+      | None -> (match (t1,t2) with 
+        | (Int(n1),Int(n2))-> Some(Int(n1*n2))
+        | _ -> failwith "Sub operands should be integers"
+      )
+    )
   (*4.1 List *)
   | Head (t) -> 
     let l = is_list t in 
@@ -268,8 +281,11 @@ let rec ltr_ctb_step (t : pterm) : pterm option =
     | Cons(_,_) -> Some (alt)
   )
   | IfEmpty (_,_,_) -> failwith "If condition should be a list element" 
+  (*4.1 Fix *)
     
   | Fix (Abs (x, body)) -> Some (substitution x (Fix (Abs (x, body))) body)
+  | Fix (_) ->failwith "Fix should be an abstraction"
+ 
   | _ -> None  (* Une variable ne peut pas être réduite *)
 
 and ltr_cbv_norm (t : pterm) : pterm =
