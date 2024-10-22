@@ -230,7 +230,7 @@ let rec ltr_ctb_step (t : pterm) : pterm option =
           | Some n' -> Some (App (m, n'))
           | None -> None)
         )
-  (* ! Entier *)
+  (*4.1 Entier *)
   | Add (t1, t2) ->( match ltr_ctb_step t1 with 
     | Some t1' -> Some (Add(t1',t2))
     | None -> match  ltr_ctb_step t2 with 
@@ -249,13 +249,21 @@ let rec ltr_ctb_step (t : pterm) : pterm option =
         | _ -> failwith "Sub operands should be integers"
       )
     )
-  (*! List *)
+  (*4.1 List *)
   | Head (t) -> 
     let l = is_list t in 
     get_head_list l 
   | Tail (t) -> 
       let l = is_list t in 
       get_tail_list l 
+  (*4.1 If *)
+  | IfZero (Int(0),cons,alt) -> Some(cons) 
+  | IfZero (Int(n),cons,alt) -> Some(alt) 
+  | IfZero (cond,cons,alt) -> ( 
+    match ltr_ctb_step cond with 
+    | Some cond' -> Some (IfZero (cond',cons,alt)  ) 
+    | None -> None 
+    )
     
   | Fix (Abs (x, body)) -> Some (substitution x (Fix (Abs (x, body))) body)
   | _ -> None  (* Une variable ne peut pas être réduite *)
