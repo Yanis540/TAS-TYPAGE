@@ -50,6 +50,12 @@ let examples_fix =[
   ("Fact 3", (App(fact,Int 6)), Int 720);
 ] 
 
+
+(*! Let  *)
+let examples_let =[
+  ("let x = 3 in x", (Let("x",Int 3,Var "x")), Int 3);
+  ("let x = 4 in x+1", (Let("x",Int 4 ,Add(Var "x",Int 1))), Int 5);
+] 
 let test_  (part:string)(name:string) (term:pterm) (expected:pterm) = 
   Printf.printf "\n--- Test %s : %s ---\n"  part name;
   try 
@@ -81,4 +87,6 @@ let _ =
   List.iter (fun (name,term,expected) -> test_ "Fix" name term expected ) examples_fix;
   Printf.printf "\n\n\n--- If  ---\n\n\n";
   List.iter (fun (name,term,expected) -> test_ "If" name term expected ) examples_if;
+  Printf.printf "\n\n\n--- Let  ---\n\n\n";
+  List.iter (fun (name,term,expected) -> test_ "Let" name term expected ) examples_let;
 ;;

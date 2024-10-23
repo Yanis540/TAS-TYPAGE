@@ -285,8 +285,15 @@ let rec ltr_ctb_step (t : pterm) : pterm option =
     
   | Fix (Abs (x, body)) -> Some (substitution x (Fix (Abs (x, body))) body)
   | Fix (_) ->failwith "Fix should be an abstraction"
- 
-  | _ -> None  (* Une variable ne peut pas être réduite *)
+  (*4.1 Let *)
+  | Let (x,e1,e2) -> (
+      let v = (match ltr_ctb_step e1 with 
+      | Some(e1') -> e1'
+      | None -> e1
+      ) in 
+      Some(substitution x v  e2)
+    )
+  | _ -> None  (* Une valeur ne peut pas être réduite *)
 
 and ltr_cbv_norm (t : pterm) : pterm =
   match ltr_ctb_step t with
