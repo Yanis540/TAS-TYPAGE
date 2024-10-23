@@ -115,3 +115,10 @@ let _ =
   Printf.printf "\n--- Inférence examples de Système  ---\n";
   List.iter test_infer_type infer_tests;
 ;; 
+
+
+(* !  *)
+let t = Forall(["X"; "Y"], Arrow(VarType "X", VarType "Y"));;
+
+let _ = 
+  print_ptype t;;
