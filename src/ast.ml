@@ -40,8 +40,8 @@ let new_address () : address =
 ;;
 
 (* Fonctions de base pour manipuler la mémoire *)
-let rec mem_lookup  (a : address)  (mem : memory): pterm =
-  try (List.assoc a mem) with Not_found -> failwith ("Could not find memory address " ^( address_to_string a ))
+let rec mem_lookup  (a : address)  (mem : memory): pterm option =
+  try Some (List.assoc a mem) with Not_found -> None
 
 and mem_update  (a : address) (v : pterm)  (mem : memory): memory =
   (a, v) :: List.remove_assoc a mem
@@ -62,6 +62,7 @@ and mem_to_string(mem:memory) : string =
     | b1::b2::t->  (binding_to_string b1)^ ","^(binding_to_string b2) ^ ","^(aux t)
   in 
   "["^(aux mem)^"]"
+and print_mem mem = Printf.printf "%s\n" (mem_to_string mem) 
 and liste_to_string (lst: pterm liste) : string =
   let rec aux lst'= 
     (match lst' with 
@@ -366,8 +367,13 @@ let rec ltr_ctb_step (t : pterm) (mem:memory) : (pterm*memory) option =
         let (adr,mem') = mem_add m mem in 
         Some(Address(adr),mem')
   ) 
- 
-    
+  | DeRef (Address(a)) -> (
+    match mem_lookup a mem with 
+    | Some v -> Some(v,mem)  
+    | None -> print_mem mem; Printf.printf "%d" !address_counter;  failwith ("Could not find memory address " ^( address_to_string a )) 
+  )
+  | DeRef(_)-> failwith "Deref should be used with referenced variables"
+     
   | _ -> None  (* Une valeur ne peut pas être réduite *)
 
 and ltr_cbv_norm (t : pterm) (mem:memory): (pterm *memory) =
