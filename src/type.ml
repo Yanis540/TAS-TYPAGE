@@ -199,7 +199,20 @@ let rec generate_equa (te : Ast.pterm) (ty : ptype) (env : env) : equas =
     let eqs_alt = generate_equa alt ty env in    (* Le type de l'alternant doit être le même que le type cible *)
     eqs_cond @ eqs_cons @ eqs_alt
   (* 4.2 Fix *)
-  | Fix(t) -> generate_equa t ty env 
+  (* Fix  *)
+  | Fix(Abs (phi, m)) -> 
+    (*  
+    *     Γ[ϕ : T → U] ⊢ M : T → U
+      ------------------------------
+    *     Γ ⊢ fix λϕ.M : T → U 
+    *)
+    let type_T = VarType (new_var_ptype ()) in
+    let type_U = VarType (new_var_ptype ()) in
+    let env' = (phi, Arrow (type_T, type_U)) :: env in
+    let eqs_m = generate_equa m (Arrow (type_T, type_U)) env' in
+    (ty, Arrow (type_T, type_U)) :: eqs_m
+  | Fix(t) -> failwith ("Fix should receive an Abstraction (lambda function )" ) 
+
   (* 4.2 Let *)
   | Let (x, e1, e2) -> 
     (* Inférer le type de e1 *)

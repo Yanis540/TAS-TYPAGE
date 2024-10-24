@@ -22,30 +22,47 @@ let basic_infering = [
 
 let list_tests = [
   ("[1]", List(Cons(Int(1),Empty)), ListType(N));
-  ("[1, (λx.x)]", List(Cons(Int(1),Cons(Abs("x",Var "x"),Empty))), ListType(N)); 
+  (*! should fail *) (* ("[1, (λx.x)]", List(Cons(Int(1),Cons(Abs("x",Var "x"),Empty))), ListType(N));  *)
   ("[1, (1+2)]", List(Cons(Int(1),Cons(Add(Int(1),Int(2)),Empty))), ListType(N)); 
-  ("[x]", List(Cons(Var "x",Empty)), ListType(VarType "x"));  (* should fail car il n'a pas me type de x *)
+  (*! should fail *) (* ("[x]", List(Cons(Var "x",Empty)), ListType(VarType "x"));   *)
   ("head [1]", Head(List(Cons(Int(1),Empty))), N); 
   ("head [(1+2)]", Head(List(Cons(Add(Int 1,Int 2),Empty))), N); 
   ("tail [1]", Tail(List(Cons(Int(1),Empty))), N); 
   ("tail [(1+2),3]", Tail(List(Cons(Add(Int 1,Int 2),Cons(Int 3,Empty)))), N); 
-  ("head [(λx.x)]", Head(List(Cons(Abs("x",Add( Int 3, Var "x")),Empty))), Arrow(N,N)); 
-  ("head [(λx.x)]", Head(List(Cons(Abs("x", Var "x"),Empty))), Arrow(VarType "T44",VarType "T44"));  (* l'essentiel que ça soit un truc alpha -> alpha *)
+  ("head [(λx.x+3)]", Head(List(Cons(Abs("x",Add( Int 3, Var "x")),Empty))), Arrow(N,N)); 
+  (* l'essentiel que ça soit un truc alpha -> alpha *)
+  ("head [(λx.x)]", Head(List(Cons(Abs("x", Var "x"),Empty))), Arrow(VarType "T38",VarType "T38"));  
   ("tail [(λx.x)]", Tail(List(Cons(Abs("x",Add( Int 3, Var "x")),Empty))), Arrow(N,N)); 
 
 ];;
 
 let if_tests = [
-  ("if [] 2 3", IfZero(List(Empty), Int 2 , Int 3), N);  (* should fail *)
+  (*! should fail *) (* ("if [] 2 3", IfZero(List(Empty), Int 2 , Int 3), N);   *)
   ("if 1 2 3", IfZero(Int 1, Int 2 , Int 3), N);
   ("if 0 2 3", IfZero(Int 0, Int 2 , Int 3), N);
-  ("if 0 2 (λx.x)", IfZero(Int 0, Int 2 , Abs("x",Var "x")), N); (* should fail *)
+  (*! should fail *) (* ("if 0 2 (λx.x)", IfZero(Int 0, Int 2 , Abs("x",Var "x")), N);  *)
   ("if 0 2 ((λx.x+3) 2)", IfZero(Int 0, Int 2 , App(Abs("x",Add( Int 3, Var "x")), Int 2)), N);
   ("if [1] 2 3", IfEmpty(List(Cons(Int 1, Empty)), Int 2 , Int 3), N);
   ("if [] 2 3", IfEmpty(List(Empty), Int 2 , Int 3), N);
-  ("if [] 2 (λx.x)", IfEmpty(List(Empty), Int 2 , Abs("x",Var "x")), N); (* should fail *)
+  (*! should fail *) (* ("if [] 2 (λx.x)", IfEmpty(List(Empty), Int 2 , Abs("x",Var "x")), N);  *)
   ("if [] 2 ((λx.x+3) 2)", IfEmpty(List(Empty), Int 2 , App(Abs("x",Add( Int 3, Var "x")), Int 2)), N);
     
+];;
+
+
+let succ : pterm = Fix (Abs ("ϕ", Abs ("n", Add (Var "n", Int 1))));;
+let fact = Fix (Abs ("ϕ", Abs ("n",
+  IfZero (Var "n",
+          Int 1,
+          Mult(Var "n", App (Var "ϕ", Sub (Var "n", Int 1))))
+  )))
+;;
+let fix_tests = [
+  ("succ", succ, Arrow(N,N));
+  ("succ 2", App(succ,Int 2), N);
+  ("fact", fact, Arrow(N,N));
+  ("fact 2", App(fact,Int 2), N);
+ 
 ];;
 
 
@@ -74,5 +91,7 @@ let _ =
   List.iter (fun (name, term, expected) -> test_typing "List" name term expected) list_tests;
   Printf.printf "\n\n--- Tests : If ---\n\n";
   List.iter (fun (name, term, expected) -> test_typing "If" name term expected) if_tests;
+  Printf.printf "\n\n--- Tests : Fix ---\n\n";
+  List.iter (fun (name, term, expected) -> test_typing "Fix" name term expected) fix_tests;
 
 ;;
