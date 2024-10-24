@@ -366,6 +366,7 @@ let rec ltr_ctb_step (t : pterm) (mem:memory) : (pterm*memory) option =
         let (adr,mem') = mem_add m mem in 
         Some(Address(adr),mem')
   ) 
+ 
     
   | _ -> None  (* Une valeur ne peut pas être réduite *)
 
