@@ -70,7 +70,7 @@ let test_  (part:string)(name:string) (term:pterm) (expected:pterm) =
     | None -> 
         Printf.printf "Divergence détectée (timeout de 1 seconde atteinte).\n"
   with Failure msg ->
-    Printf.printf "Erreur : %s\n" msg
+    Printf.printf "❌ Erreur : %s\n" msg
 ;;
 
 

@@ -35,6 +35,19 @@ let list_tests = [
 
 ];;
 
+let if_tests = [
+  ("if [] 2 3", IfZero(List(Empty), Int 2 , Int 3), N);  (* should fail *)
+  ("if 1 2 3", IfZero(Int 1, Int 2 , Int 3), N);
+  ("if 0 2 3", IfZero(Int 0, Int 2 , Int 3), N);
+  ("if 0 2 (λx.x)", IfZero(Int 0, Int 2 , Abs("x",Var "x")), N); (* should fail *)
+  ("if 0 2 ((λx.x+3) 2)", IfZero(Int 0, Int 2 , App(Abs("x",Add( Int 3, Var "x")), Int 2)), N);
+  ("if [1] 2 3", IfEmpty(List(Cons(Int 1, Empty)), Int 2 , Int 3), N);
+  ("if [] 2 3", IfEmpty(List(Empty), Int 2 , Int 3), N);
+  ("if [] 2 (λx.x)", IfEmpty(List(Empty), Int 2 , Abs("x",Var "x")), N); (* should fail *)
+  ("if [] 2 ((λx.x+3) 2)", IfEmpty(List(Empty), Int 2 , App(Abs("x",Add( Int 3, Var "x")), Int 2)), N);
+    
+];;
+
 
 (* Fonction de test pour le typage *)
 let test_typing (part:string) (name:string) (term:pterm) (expected:ptype) = 
@@ -47,7 +60,7 @@ let test_typing (part:string) (name:string) (term:pterm) (expected:ptype) =
     else
       Printf.printf "❌ Test échoué. Type attendu : %s\n" (ptype_to_string expected)
   with Failure msg ->
-    Printf.printf "Erreur : %s\n" msg
+    Printf.printf "❌ Erreur : %s\n" msg
 ;;
 
 (* Exécution des tests *)
@@ -59,5 +72,7 @@ let _ =
   List.iter (fun (name, term, expected) -> test_typing "Arithmétique" name term expected) arithmetic_tests;
   Printf.printf "\n\n--- Tests : List ---\n\n";
   List.iter (fun (name, term, expected) -> test_typing "List" name term expected) list_tests;
+  Printf.printf "\n\n--- Tests : If ---\n\n";
+  List.iter (fun (name, term, expected) -> test_typing "If" name term expected) if_tests;
 
 ;;
