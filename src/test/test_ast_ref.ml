@@ -4,27 +4,12 @@ open Ast;;
 
 
 (* Fonction de test pour la mémoire *)
-let test_memory_operations () =
-  Printf.printf "\n--- Test des opérations sur la mémoire ---\n";
-  let mem = [] in
-  let addr1 = new_address () in
-  let addr2 = new_address () in
-  let addr3 = new_address () in
-  Printf.printf "Adresse 1 : %d\n" addr1;
-  Printf.printf "Adresse 2 : %d\n" addr2;
-  Printf.printf "Adresse 3 : %d\n" addr3;
-  let mem = mem_update mem addr1 (Int 42) in
-  let mem = mem_update mem addr2 (Abs ("x", Var "x")) in
-  let mem = mem_update mem addr3 (Add (Int 1, Int 2)) in
-  Printf.printf "État de la mémoire après les ajouts : %s\n" (mem_to_string mem);
-  (try 
-     let _ = mem_lookup mem 999 in
-     Printf.printf "Erreur : l'adresse 999 aurait dû lever une exception\n"
-   with Failure msg ->
-     Printf.printf "Accès à une adresse inconnue levé correctement : %s\n" msg);
-;;
 
 
+let ref_tests = [
+  ("Ref (Int 3) => address = 0", Ref(Int 3), Address(0));
+  ("Ref (2+3) => address = 1", Ref(Add( Int 2, Int 3)), Address(1));
+]
 let test_  (part:string)(name:string) (term:pterm) (expected:pterm) = 
   Printf.printf "\n--- Test %s : %s ---\n"  part name;
   try 
@@ -46,10 +31,8 @@ let test_  (part:string)(name:string) (term:pterm) (expected:pterm) =
 
 let _ =
   (* Exécution des tests de substitution *)
-  (* Printf.printf "\n\n\n--- Substition  ---\n\n\n";
-  List.iter (fun(name,term,expected) -> test_ "Arithmétique" name term expected) examples_arth;  *)
-  (* Appeler la fonction de test *)
-  test_memory_operations ();
+  Printf.printf "\n\n\n--- Ref  ---\n\n\n";
+  List.iter (fun(name,term,expected) -> test_ "Ref" name term expected) ref_tests; 
 
 
 ;;

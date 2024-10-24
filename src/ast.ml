@@ -25,13 +25,14 @@ type pterm = Var of string
   | Unit 
   (* 5.1 : Ref *)
   | Ref of pterm
+  | Address of address
   | DeRef of pterm
   | Assign of pterm * pterm
 and address = int
 and binding  = address * pterm
 and memory = (binding) list;;
 
-let address_counter = ref 0;;
+let address_counter = ref (-1);;
 
 let new_address () : address =
   address_counter := !address_counter + 1;
@@ -39,11 +40,15 @@ let new_address () : address =
 ;;
 
 (* Fonctions de base pour manipuler la mémoire *)
-let rec mem_lookup (mem : memory) (a : address) : pterm =
+let rec mem_lookup  (a : address)  (mem : memory): pterm =
   try (List.assoc a mem) with Not_found -> failwith ("Could not find memory address " ^( address_to_string a ))
 
-and mem_update (mem : memory) (a : address) (v : pterm) : memory =
+and mem_update  (a : address) (v : pterm)  (mem : memory): memory =
   (a, v) :: List.remove_assoc a mem
+and mem_add (v : pterm) (mem:memory) : (address*memory) =
+  let adr = new_address() in 
+  let mem' = mem_update adr v mem in 
+  (adr,mem')
 and address_to_string (a:address) = string_of_int a
 and binding_to_string (b:binding)= 
   match b with 
@@ -84,6 +89,7 @@ and pterm_to_string (t : pterm) : string =
   | Let (var, t1, t2) -> "Let ( " ^ var ^ " = " ^ (pterm_to_string t1) ^ " in " ^ (pterm_to_string t2) ^ " )"
   (* 5.1 *)
   | Unit -> "()"
+  | Address a -> "ref (" ^(address_to_string a)^")"
   | Ref r -> "ref (" ^(pterm_to_string r)^")"
   | DeRef r -> "! " ^(pterm_to_string r)
   | Assign (e1,e2) -> (pterm_to_string e1) ^":= " ^(pterm_to_string e2)
@@ -162,6 +168,7 @@ let rec alpha_conv (t:pterm)  (acc:rename_bindings): pterm =
       Let(new_var_name,(alpha_conv t1 acc'),(alpha_conv t2 acc'))
   (* 5.2 : Unit *)
   | Unit -> t 
+  | Address _ -> t
   | Ref e -> Ref(alpha_conv e acc)  
   | DeRef e -> DeRef(alpha_conv e acc)  
   | Assign (e1,e2) -> Assign(alpha_conv e1 acc,alpha_conv e2 acc)  
@@ -229,6 +236,7 @@ let rec substitution (x:string) (nterm:pterm) (t:pterm)  : pterm  =
   (* 5.2 : Unit *)
 
   | Ref e -> Ref(substitution x nterm e) 
+  | Address _ -> t 
   | DeRef e -> DeRef(substitution x nterm e) 
   | Assign (e1,e2) -> Assign(substitution x nterm e1, substitution x nterm e2) 
   
@@ -351,6 +359,14 @@ let rec ltr_ctb_step (t : pterm) (mem:memory) : (pterm*memory) option =
       let e2' =  substitution x (e1')  e2 in 
       Some(e2',mem')
     )
+  | Ref m -> (
+    match ltr_ctb_step m mem with 
+    | Some(m',mem') -> Some(Ref(m'),mem')
+    | None -> 
+        let (adr,mem') = mem_add m mem in 
+        Some(Address(adr),mem')
+  ) 
+    
   | _ -> None  (* Une valeur ne peut pas être réduite *)
 
 and ltr_cbv_norm (t : pterm) (mem:memory): (pterm *memory) =
