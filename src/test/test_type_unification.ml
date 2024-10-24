@@ -22,9 +22,9 @@ let basic_infering = [
 
 let list_tests = [
   ("[1]", List(Cons(Int(1),Empty)), ListType(N));
-  (*! should fail *) (* ("[1, (λx.x)]", List(Cons(Int(1),Cons(Abs("x",Var "x"),Empty))), ListType(N));  *)
+  (** should fail *) (* ("[1, (λx.x)]", List(Cons(Int(1),Cons(Abs("x",Var "x"),Empty))), ListType(N));  *)
   ("[1, (1+2)]", List(Cons(Int(1),Cons(Add(Int(1),Int(2)),Empty))), ListType(N)); 
-  (*! should fail *) (* ("[x]", List(Cons(Var "x",Empty)), ListType(VarType "x"));   *)
+  (** should fail *) (* ("[x]", List(Cons(Var "x",Empty)), ListType(VarType "x"));   *)
   ("head [1]", Head(List(Cons(Int(1),Empty))), N); 
   ("head [(1+2)]", Head(List(Cons(Add(Int 1,Int 2),Empty))), N); 
   ("tail [1]", Tail(List(Cons(Int(1),Empty))), N); 
@@ -37,16 +37,21 @@ let list_tests = [
 ];;
 
 let if_tests = [
-  (*! should fail *) (* ("if [] 2 3", IfZero(List(Empty), Int 2 , Int 3), N);   *)
+  (** should fail *) (* ("if [] 2 3", IfZero(List(Empty), Int 2 , Int 3), N);   *)
   ("if 1 2 3", IfZero(Int 1, Int 2 , Int 3), N);
   ("if 0 2 3", IfZero(Int 0, Int 2 , Int 3), N);
-  (*! should fail *) (* ("if 0 2 (λx.x)", IfZero(Int 0, Int 2 , Abs("x",Var "x")), N);  *)
+  (** should fail *) (* ("if 0 2 (λx.x)", IfZero(Int 0, Int 2 , Abs("x",Var "x")), N);  *)
   ("if 0 2 ((λx.x+3) 2)", IfZero(Int 0, Int 2 , App(Abs("x",Add( Int 3, Var "x")), Int 2)), N);
   ("if [1] 2 3", IfEmpty(List(Cons(Int 1, Empty)), Int 2 , Int 3), N);
   ("if [] 2 3", IfEmpty(List(Empty), Int 2 , Int 3), N);
-  (*! should fail *) (* ("if [] 2 (λx.x)", IfEmpty(List(Empty), Int 2 , Abs("x",Var "x")), N);  *)
+  (** should fail *) (* ("if [] 2 (λx.x)", IfEmpty(List(Empty), Int 2 , Abs("x",Var "x")), N);  *)
   ("if [] 2 ((λx.x+3) 2)", IfEmpty(List(Empty), Int 2 , App(Abs("x",Add( Int 3, Var "x")), Int 2)), N);
     
+];;
+let let_tests = [
+  ("let x = 2 in x",Let("x",Int(2),Var "x"),N);
+  ("let x = (λx.x+3) in x",Let("x",Abs("x",Add(Var "x",Int 3)), Var "x"),Arrow(N,N));
+  ("let x = (λx.x+3) in (x 2)",Let("x",Abs("x",Add(Var "x",Int 3)), App(Var "x",Int 2)),N);
 ];;
 
 
@@ -93,5 +98,7 @@ let _ =
   List.iter (fun (name, term, expected) -> test_typing "If" name term expected) if_tests;
   Printf.printf "\n\n--- Tests : Fix ---\n\n";
   List.iter (fun (name, term, expected) -> test_typing "Fix" name term expected) fix_tests;
+  Printf.printf "\n\n--- Tests : Let ---\n\n";
+  List.iter (fun (name, term, expected) -> test_typing "Let" name term expected) let_tests;
 
 ;;
