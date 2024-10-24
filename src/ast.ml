@@ -21,10 +21,42 @@ type pterm = Var of string
   | Fix  of pterm
   (* 4.1 : Let *)
   | Let  of string * pterm *pterm
-   
+  (* 5.1 : Unit *)
+  | Unit 
+  | Ref of pterm
+  | DeRef of pterm
+  | Assign of pterm * pterm
+and address = int
+and binding  = address * pterm
+and memory = (binding) list;;
 
+let address_counter = ref 0;;
+
+let new_address () : address =
+  address_counter := !address_counter + 1;
+  !address_counter
 ;;
-let rec liste_to_string (lst: pterm liste) : string =
+
+(* Fonctions de base pour manipuler la mémoire *)
+let rec mem_lookup (mem : memory) (a : address) : pterm =
+  try (List.assoc a mem) with Not_found -> failwith ("Could not find memory address " ^( address_to_string a ))
+
+and mem_update (mem : memory) (a : address) (v : pterm) : memory =
+  (a, v) :: List.remove_assoc a mem
+and address_to_string (a:address) = string_of_int a
+and binding_to_string (b:binding)= 
+  match b with 
+    | (a,v)->  "("^(address_to_string a)^","^(pterm_to_string v)^")" 
+
+and mem_to_string(mem:memory) : string =
+  let rec aux (mem:memory) = 
+    match mem with 
+    | []-> "" 
+    | b::[]-> binding_to_string b
+    | b1::b2::t->  (binding_to_string b1)^ ","^(binding_to_string b2) ^ ","^(aux t)
+  in 
+  "["^(aux mem)^"]"
+and liste_to_string (lst: pterm liste) : string =
   let rec aux lst'= 
     (match lst' with 
     |  Empty-> "" 
@@ -49,6 +81,11 @@ and pterm_to_string (t : pterm) : string =
   | IfEmpty (cond, t1, t2) -> "IfEmpty ( " ^ (pterm_to_string cond) ^ " , " ^ (pterm_to_string t1) ^ " , " ^ (pterm_to_string t2) ^ " )"
   | Fix (f) -> "Fix ( "  ^ (pterm_to_string f) ^ " )"
   | Let (var, t1, t2) -> "Let ( " ^ var ^ " = " ^ (pterm_to_string t1) ^ " in " ^ (pterm_to_string t2) ^ " )"
+  (* 5.1 *)
+  | Unit -> "()"
+  | Ref r -> "ref (" ^(pterm_to_string r)^")"
+  | DeRef r -> "! " ^(pterm_to_string r)
+  | Assign (e1,e2) -> (pterm_to_string e1) ^":= " ^(pterm_to_string e2)
 ;;
 
 let print_pterm (t:pterm) = 
@@ -64,12 +101,12 @@ let new_var (): string = var_counter := !var_counter +1;
 (*
   * acc : (old_variable_name,new_variable_name)
 *)
-type binding = string * string;; 
-type rename_binding = binding list ;; 
-let acc_element_to_string (a:binding) = 
+type rename_binding = string * string;; 
+type rename_bindings = rename_binding list ;; 
+let acc_element_to_string (a:rename_binding) = 
   match a with 
   | (o,n)->"( "^o^", "^n^" )" 
-let rec acc_to_string (acc:rename_binding) :string = 
+let rec acc_to_string (acc:rename_bindings) :string = 
   match acc with 
   | []->""
   | [a] -> acc_element_to_string a 
@@ -79,7 +116,7 @@ let rec acc_to_string (acc:rename_binding) :string =
 let print_acc (acc:(string*string)list ) = 
   Printf.printf "[ %s ]\n" (acc_to_string acc)
 ;;
-let rec alpha_conv (t:pterm)  (acc:rename_binding): pterm = 
+let rec alpha_conv (t:pterm)  (acc:rename_bindings): pterm = 
  
   match t with 
   | Var (var_name) -> (
@@ -124,8 +161,8 @@ let rec alpha_conv (t:pterm)  (acc:rename_binding): pterm =
       Let(new_var_name,(alpha_conv t1 acc'),(alpha_conv t2 acc'))
 
 (* alpha conversion spéciale pour les listes *)
-and alpha_conv_liste (lst : pterm liste ) (acc:rename_binding) : pterm liste = 
-  let rec aux (lst : pterm liste ) (acc:rename_binding) : pterm liste= (match lst with
+and alpha_conv_liste (lst : pterm liste ) (acc:rename_bindings) : pterm liste = 
+  let rec aux (lst : pterm liste ) (acc:rename_bindings) : pterm liste= (match lst with
     | Empty -> Empty 
     | Cons (hd,tail) -> 
         let hd' = alpha_conv hd acc in 
