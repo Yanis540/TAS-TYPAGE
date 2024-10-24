@@ -378,7 +378,19 @@ let rec ltr_ctb_step (t : pterm) (mem:memory) : (pterm*memory) option =
     | None -> failwith "Deref should be used with referenced variables"
     )
     
- 
+  | Assign(Address(a),n)-> 
+    let mem' = mem_update a n mem in 
+    Some (Unit,mem')  
+  | Assign(m,n)-> (
+    match ltr_ctb_step m mem with 
+    (* M-> M' => M:=n;sig -> M':=N;sig *)
+    | Some(m',mem') -> Some(Assign(m',n),mem')
+    | None ->(
+      match ltr_ctb_step n mem with 
+      | Some (n',mem') -> Some(Assign(m,n'),mem') 
+      | None -> failwith "Should not Occur, can't reduce left and right" (* should not occur *) 
+    )
+  )
   | _ -> None  (* Une valeur ne peut pas être réduite *)
 
 and ltr_cbv_norm (t : pterm) (mem:memory): (pterm *memory) =
