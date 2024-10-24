@@ -161,31 +161,30 @@ let rec generate_equa (te : Ast.pterm) (ty : ptype) (env : env) : equas =
     let eqs_t2 = generate_equa t2 N env in  (* Type attendu pour t2 : N *)
     (ty, N) :: eqs_t1 @ eqs_t2  (* L'opérateur + produit aussi un entier, donc on égalise T avec N *)
   (* 4.2 List *)
-  | List lst -> (* Générer une variable de type fraîche pour les éléments de la liste *)
+  (* pour les liste, comme je ne veux pas trop nous faire chier, je considère que tout les éléments d'une liste 
+    doit avoir le même type (sinon on devrait implémenter le SumType ce qui encore plus chiant mdr) *)
+  | List lst ->
     let ta = VarType (new_var_ptype ()) in
-    (* Générer les équations pour chaque élément de la liste *)
+    (* Générer les équations pour chaque élément de la liste : *)
+    (* ! TODO : utilsier le résultat de cette fonction avec le SumType *)
     let rec generate_list_equa (lst: pterm liste) (ty_elem: ptype) : equas =
       match lst with
-      | Empty -> []  (* Une liste vide n'a pas d'équations à générer *)
+      | Empty -> []  
       | Cons (hd, tl) -> 
-          (* Générer des équations pour l'élément courant *)
           let eq_hd = generate_equa hd ty_elem env in
-          (* Générer des équations pour le reste de la liste *)
           let eq_tl = generate_list_equa tl ty_elem in
           eq_hd @ eq_tl
     in
-    (* Générer les équations pour les éléments de la liste *)
     let eqs_list = generate_list_equa lst ta in
-    (* Le type cible de la liste doit être une liste de type ta *)
     (ty, ListType ta) :: eqs_list
   | Head t -> 
     let ta = VarType (new_var_ptype ()) in
-    let eqs_t = generate_equa t (ListType ta) env in  (* Le type de t doit être une liste de type ta *)
-    (ty, ta) :: eqs_t  (* L'opération Head retourne un élément du même type que celui dans la liste *)
+    let eqs_t = generate_equa t (ListType ta) env in 
+    (ty, ta) :: eqs_t  
   | Tail t -> 
     let ta = VarType (new_var_ptype ()) in
-    let eqs_t = generate_equa t (ListType ta) env in  (* Le type de t doit être une liste de type ta *)
-    (ty, ta) :: eqs_t  (* L'opération Tail retourne un élément du même type que celui dans la liste *)
+    let eqs_t = generate_equa t (ListType ta) env in 
+    (ty, ta) :: eqs_t  
 
   (* 4.2 If *)
   | IfZero (cond, cons, alt) -> 
@@ -350,7 +349,7 @@ and infer_type (term : Ast.pterm) (env : env) (timeout_duration : float) : ptype
 ;;
 
 let infer_type_  (term : Ast.pterm) : ptype = 
-  match infer_type term [] 2.0 with 
+  match infer_type term [] 1.0 with 
   | Some t -> t 
   | _ -> failwith "Could not infer type "
 ;;  
