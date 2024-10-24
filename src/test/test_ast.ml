@@ -63,8 +63,8 @@ let examples = [
 let test_normalization (name, term) =
   Printf.printf "\n--- Test: %s ---\n" name;
   (* Tenter de normaliser avec un timeout de 10 étapes *)
-  match ltr_cbv_norm_timeout term 1.0 with
-  | Some nf -> 
+  match ltr_cbv_norm_timeout term [] 1.0 with
+  | Some (nf,mem) -> 
       Printf.printf "Forme normale (avec timeout): %s\n" (pterm_to_string nf)
   | None -> 
       Printf.printf "Divergence détectée (limite de réduction atteinte).\n"
@@ -75,12 +75,12 @@ let main () =
   Printf.printf "\n--- Substition  ---\n";
   print_pterm sub_t2_in_t1_result_v2;
   Printf.printf "\n--- Réduction de l'exemple II ---\n";
-  print_reduction_steps example_II;
+  print_reduction_steps example_II [];
   Printf.printf "\n--- Réduction de l'exemple SKK ---\n";
-  print_reduction_steps example_skk;
+  print_reduction_steps example_skk [];
   Printf.printf "\n--- Normalisation avec timeout ---\n";
-  (match ltr_cbv_norm_timeout example_skk 1.0 with
-  | Some nf -> 
+  (match ltr_cbv_norm_timeout example_skk [] 1.0 with
+  | Some (nf,mem) -> 
     Printf.printf "Forme normale (avec timeout): ";
     print_pterm nf
     | None -> 

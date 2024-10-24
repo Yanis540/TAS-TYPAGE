@@ -28,8 +28,8 @@ let test_memory_operations () =
 let test_  (part:string)(name:string) (term:pterm) (expected:pterm) = 
   Printf.printf "\n--- Test %s : %s ---\n"  part name;
   try 
-    match ltr_cbv_norm_timeout term 1.0 with
-    | Some result -> 
+    match ltr_cbv_norm_timeout term [] 1.0 with
+    | Some (result,mem) -> 
         Printf.printf "Resultat : %s\n" (pterm_to_string result);
         if result = expected then
           Printf.printf "✅ Test réussi.\n"

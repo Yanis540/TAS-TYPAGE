@@ -23,6 +23,7 @@ type pterm = Var of string
   | Let  of string * pterm *pterm
   (* 5.1 : Unit *)
   | Unit 
+  (* 5.1 : Ref *)
   | Ref of pterm
   | DeRef of pterm
   | Assign of pterm * pterm
@@ -159,6 +160,11 @@ let rec alpha_conv (t:pterm)  (acc:rename_bindings): pterm =
       let new_var_name= new_var() in 
       let acc' = (x,new_var_name)::acc in 
       Let(new_var_name,(alpha_conv t1 acc'),(alpha_conv t2 acc'))
+  (* 5.2 : Unit *)
+  | Unit -> t 
+  | Ref e -> Ref(alpha_conv e acc)  
+  | DeRef e -> DeRef(alpha_conv e acc)  
+  | Assign (e1,e2) -> Assign(alpha_conv e1 acc,alpha_conv e2 acc)  
 
 (* alpha conversion spéciale pour les listes *)
 and alpha_conv_liste (lst : pterm liste ) (acc:rename_bindings) : pterm liste = 
@@ -212,13 +218,19 @@ let rec substitution (x:string) (nterm:pterm) (t:pterm)  : pterm  =
       IfEmpty (cond', cons', alt')
   (* 4.1 : Point fix *)
   | Fix (f) -> Fix (substitution x nterm f)
-  |  Let (y, e1, e2) ->
+  | Let (y, e1, e2) ->
       let e1' = substitution x nterm e1 in
       if y = x then
         Let (y, e1', e2)  (* Pas de substitution dans e2 car y est lié *)
       else
         Let (y, e1', substitution x nterm e2)
+  (* 5.2 : Unit *)
+  | Unit -> t 
+  (* 5.2 : Unit *)
 
+  | Ref e -> Ref(substitution x nterm e) 
+  | DeRef e -> DeRef(substitution x nterm e) 
+  | Assign (e1,e2) -> Assign(substitution x nterm e1, substitution x nterm e2) 
   
 (* Fonction auxiliaire pour la substitution dans une liste de termes *)
 and substitution_liste (x: string) (nterm: pterm) (lst: pterm liste) : pterm liste =
@@ -243,126 +255,135 @@ let is_list (t:pterm) : pterm liste=
   | List(l) -> l 
   | _ -> failwith "Error : Type not liste" 
 ;; 
-let rec get_tail_list (l': pterm liste) : pterm option  =  (match l' with 
-  | Cons(h,Empty) -> Some(h)
+let rec get_tail_list (l': pterm liste) : pterm   =  (match l' with 
+  | Cons(h,Empty) -> h
   | Cons(_,tail) -> get_tail_list tail 
   | Empty -> failwith "Can not access Empty list"
 ) ;;
-let get_head_list (l: pterm liste) : pterm option  =  (match l with 
-| Cons(h,_) -> Some(h)
+let get_head_list (l: pterm liste) : pterm   =  (match l with 
+| Cons(h,_) -> h
 | Empty -> failwith "Can not access Empty list"
 ) ;;
 (* ! Evaluation  *)
 (* Fonction de réduction LtR-CbV *)
-let rec ltr_ctb_step (t : pterm) : pterm option =
+let rec ltr_ctb_step (t : pterm) (mem:memory) : (pterm*memory) option =
   match t with
   (* Beta reduction *)
   | App (Abs (x, body), v) when is_value v ->
-    Some (substitution x v body)
+    Some ((substitution x v body),mem)
   | App (m, n) ->
-      (match ltr_ctb_step m with
+      (match ltr_ctb_step m mem with
       (* M -> M' => M N -> M' N *)
-      | Some m' -> Some (App (m', n))
+      | Some (m',mem') -> Some (App (m', n),mem')
       | None when (is_value m) = false ->None
       | _  ->
           (* Si la partie gauche est déjà une valeur, on essaie de réduire la partie droite *)
           (
-          match ltr_ctb_step n with
-          | Some n' -> Some (App (m, n'))
+          match ltr_ctb_step n mem with
+          | Some (n',mem') -> Some (App (m, n'),mem')
           | None -> None)
         )
   (*4.1 Entier *)
-  | Add (t1, t2) ->( match ltr_ctb_step t1 with 
-    | Some t1' -> Some (Add(t1',t2))
-    | None -> match  ltr_ctb_step t2 with 
-      Some t2'-> Some (Add(t1,t2'))
-      | None -> (match (t1,t2) with 
-        | (Int(n1),Int(n2))-> Some(Int(n1+n2))
-        | _ -> failwith "Add operands should be integers"
-      )
+  | Add (t1, t2) ->( match ltr_ctb_step t1 mem with 
+    | Some (t1',mem') -> Some (Add(t1',t2),mem')
+    | None -> 
+      match  ltr_ctb_step t2 mem with 
+        Some (t2',mem')-> Some (Add(t1,t2'),mem')
+        | None -> (match (t1,t2) with 
+          | (Int(n1),Int(n2))-> Some(Int(n1+n2),mem)
+          | _ -> failwith "Add operands should be integers"
+        )
     )
-  | Sub (t1, t2) ->( match ltr_ctb_step t1 with 
-    | Some t1' -> Some (Sub(t1',t2))
-    | None -> match  ltr_ctb_step t2 with 
-      Some t2'-> Some (Sub(t1,t2'))
-      | None -> (match (t1,t2) with 
-        | (Int(n1),Int(n2))-> Some(Int(n1-n2))
-        | _ -> failwith "Sub operands should be integers"
-      )
+  | Sub (t1, t2) ->( match ltr_ctb_step t1 mem with 
+    | Some (t1',mem') -> Some (Sub(t1',t2),mem')
+    | None -> 
+      match  ltr_ctb_step t2 mem with 
+        Some (t2',mem')-> Some (Sub(t1,t2'),mem')
+        | None -> (match (t1,t2) with 
+          | (Int(n1),Int(n2))-> Some(Int(n1-n2),mem)
+          | _ -> failwith "Sub operands should be integers"
+        )
     )
-  | Mult (t1, t2) ->( match ltr_ctb_step t1 with 
-    | Some t1' -> Some (Mult(t1',t2))
-    | None -> match  ltr_ctb_step t2 with 
-      Some t2'-> Some (Mult(t1,t2'))
-      | None -> (match (t1,t2) with 
-        | (Int(n1),Int(n2))-> Some(Int(n1*n2))
-        | _ -> failwith "Sub operands should be integers"
-      )
+  | Mult (t1, t2) ->( 
+    match ltr_ctb_step t1 mem with 
+    | Some (t1',mem') -> Some (Mult(t1',t2),mem')
+    | None -> 
+      match  ltr_ctb_step t2 mem with 
+        Some (t2',mem')-> Some (Mult(t1,t2'),mem')
+        | None -> (match (t1,t2) with 
+          | (Int(n1),Int(n2))-> Some(Int(n1*n2),mem)
+          | _ -> failwith "Sub operands should be integers"
+        )
     )
   (*4.1 List *)
   | Head (t) -> 
-    let l = is_list t in 
-    get_head_list l 
+      let l = is_list t in 
+      Some(get_head_list l,mem) 
   | Tail (t) -> 
       let l = is_list t in 
-      get_tail_list l 
+      Some(get_tail_list l,mem) 
   (*4.1 If *)
-  | IfZero (Int(0),cons,alt) -> Some(cons) 
-  | IfZero (Int(n),cons,alt) -> Some(alt) 
-  | IfZero (cond,cons,alt) -> (match ltr_ctb_step cond with 
-    | Some cond' -> Some (IfZero (cond',cons,alt)  ) 
-    | None -> failwith "If condition should be an integer " 
-    )
+  | IfZero (Int(0),cons,alt) -> Some(cons,mem) 
+  | IfZero (Int(n),cons,alt) -> Some(alt,mem) 
+  | IfZero (cond,cons,alt) -> (
+    match ltr_ctb_step cond mem with 
+    | Some (cond',mem') -> Some (IfZero (cond',cons,alt) ,mem' ) 
+    | None -> failwith "If condition should be an integer " )
   | IfEmpty (List(t),cons,alt) -> ( match t with 
-    | Empty -> Some(cons) 
-    | Cons(_,_) -> Some (alt)
+    | Empty -> Some(cons,mem) 
+    | Cons(_,_) -> Some (alt,mem)
   )
   | IfEmpty (_,_,_) -> failwith "If condition should be a list element" 
   (*4.1 Fix *)
     
-  | Fix (Abs (x, body)) -> Some (substitution x (Fix (Abs (x, body))) body)
+  | Fix (Abs (x, body)) -> 
+    let body'= substitution x (Fix (Abs (x, body))) body in 
+    Some (body',mem)
   | Fix (_) ->failwith "Fix should be an abstraction"
   (*4.1 Let *)
   | Let (x,e1,e2) -> (
-      let v = (match ltr_ctb_step e1 with 
-      | Some(e1') -> e1'
-      | None -> e1
+      let v = (
+        match ltr_ctb_step e1 mem with 
+        | Some(e',m') -> (e',m')
+        | None -> (e1,mem)
       ) in 
-      Some(substitution x v  e2)
+      let (e1',mem') = v in  
+      let e2' =  substitution x (e1')  e2 in 
+      Some(e2',mem')
     )
   | _ -> None  (* Une valeur ne peut pas être réduite *)
 
-and ltr_cbv_norm (t : pterm) : pterm =
-  match ltr_ctb_step t with
-  | Some t' -> ltr_cbv_norm t'
-  | None -> t
+and ltr_cbv_norm (t : pterm) (mem:memory): (pterm *memory) =
+  match ltr_ctb_step t mem with
+  | Some (t',mem') -> ltr_cbv_norm t' mem'
+  | None -> (t,mem)
 ;;
 (* Fonction de normalisation avec timeout (limite de nombre d'étapes) *)
-let rec ltr_cbv_norm_timeout (t : pterm) (time_limit : float) : pterm option =
+let rec ltr_cbv_norm_timeout (t : pterm) (mem:memory) (time_limit : float) : (pterm *memory) option =
   let start_time = Sys.time () in
-  let rec norm t =
+  let rec norm t mem =
     if Sys.time () -. start_time > time_limit then
       None  (* Timeout atteint *)
     else
-      match ltr_ctb_step t with
-      | Some t' -> norm t'
-      | None -> Some t  
+      match ltr_ctb_step t mem with
+      | Some (t',mem') -> norm t' mem'
+      | None -> Some (t,mem)  
       (* Terminé, forme normale atteinte *)
   in
-  norm t
+  norm t mem
 ;;
 let rec ltr_cbv_norm_ (t : pterm)  : pterm =
-match ltr_cbv_norm_timeout t 1.0 with
-| Some nf -> nf
+match ltr_cbv_norm_timeout t [] 1.0 with
+| Some (nf,mem) -> nf
 | None -> 
     failwith "Divergence détectée (limite de réduction atteinte).\n"
 ;;
-let rec print_reduction_steps t =
+let rec print_reduction_steps t mem =
   print_pterm t;
-  match ltr_ctb_step t with
-  | Some t' ->
+  match ltr_ctb_step t mem  with
+  | Some (t',mem') ->
       Printf.printf "=> ";
-      print_reduction_steps t'
+      print_reduction_steps t' mem'
   | None ->
        Printf.printf "=> (forme normale)\n"
 ;;
