@@ -11,11 +11,13 @@ let ref_tests = [
   ("Ref (2+3) => address = 1", Ref(Add( Int 2, Int 3)), Address(1));
   ("Ref (λx. x+2) => address = 2", Ref(Abs("x",Add(Var "x",Int 2))), Address(2));
   ("Ref (Addres(2)) => address = 2", Ref(Address(2)), Address(3));
+  ("let x = ref 3 in x ", Let("x",Ref(Int 1),Var "x"), Address(4));
 ]
 (* for deref try to modify the empty array in the test_ function  for example : [(3,Address(2))] cause the memory is not saved but rather passed *)
 let deref_tests = [
-  ("!3 (l'entier 3 pas l'@)", DeRef(Int 3), Address(0));
-  ("!@3 ", DeRef(Address(3)), Address(2));
+  ("let x = ref 3 in !x  ", Let("x",Ref(Int 1),DeRef(Var "x")), Int 1);
+  ("let x = ref (2+3) in !x  ", Let("x",Ref(Add(Int 2,Int 3)),DeRef(Var "x")), Int 5);
+  ("let x = ref (λx. x+2) in (!x) 2  ", Let("x",Ref(Abs("x",Add(Var"x",Int 2))),App(DeRef(Var "x"),Int 2)), Int 4);
 ]
 let test_  (part:string)(name:string) (term:pterm) (expected:pterm) = 
   Printf.printf "\n--- Test %s : %s ---\n"  part name;

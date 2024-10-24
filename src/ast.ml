@@ -372,8 +372,13 @@ let rec ltr_ctb_step (t : pterm) (mem:memory) : (pterm*memory) option =
     | Some v -> Some(v,mem)  
     | None -> print_mem mem; Printf.printf "%d" !address_counter;  failwith ("Could not find memory address " ^( address_to_string a )) 
   )
-  | DeRef(_)-> failwith "Deref should be used with referenced variables"
-     
+  | DeRef(m)-> (
+    match ltr_ctb_step m mem with 
+    | Some(m',mem') -> Some(DeRef(m'),mem')
+    | None -> failwith "Deref should be used with referenced variables"
+    )
+    
+ 
   | _ -> None  (* Une valeur ne peut pas être réduite *)
 
 and ltr_cbv_norm (t : pterm) (mem:memory): (pterm *memory) =
