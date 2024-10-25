@@ -259,11 +259,7 @@ let rec is_value (t: pterm) : bool =
   | _ -> false   
 ;;
 
-let is_list (t:pterm) : pterm liste= 
-  match t with 
-  | List(l) -> l 
-  | _ -> failwith "Error : Type not liste" 
-;; 
+
 let rec get_tail_list (l': pterm liste) : pterm   =  (match l' with 
   | Cons(h,Empty) -> h
   | Cons(_,tail) -> get_tail_list tail 
@@ -325,12 +321,17 @@ let rec ltr_ctb_step (t : pterm) (mem:memory) : (pterm*memory) option =
         )
     )
   (*4.1 List *)
-  | Head (t) -> 
-      let l = is_list t in 
-      Some(get_head_list l,mem) 
-  | Tail (t) -> 
-      let l = is_list t in 
-      Some(get_tail_list l,mem) 
+  | Head (t) -> (
+      match ltr_ctb_step t mem with 
+      | Some (List(l),mem') -> Some(get_head_list l,mem') 
+      | _ -> failwith "Not a list"
+    )
+      
+  | Tail (t) -> (
+    match ltr_ctb_step t mem with 
+    | Some (List(l),mem') -> Some(get_tail_list l,mem') 
+    | _ -> failwith "Not a list"
+  )
   (*4.1 If *)
   | IfZero (Int(0),cons,alt) -> Some(cons,mem) 
   | IfZero (Int(n),cons,alt) -> Some(alt,mem) 

@@ -9,7 +9,8 @@ type ptype =
   | Forall of string list * ptype 
   (* 5.2 *)
   | RefType of ptype
-  | UnitType              
+  | UnitType
+  | AddressType                     
   and env = (string * ptype) list  
 and equa = ptype * ptype
 and equas = (equa) list
@@ -25,8 +26,9 @@ let rec ptype_to_string (t : ptype) : string =
   | Forall (vars, t) -> 
     let vars_str = String.concat ", " vars in
     "∀" ^ vars_str ^ ". " ^ (ptype_to_string t)
-  | RefType t -> "ref "^ (ptype_to_string t) ^""
+  | RefType t -> "ref ("^ (ptype_to_string t) ^")"
   | UnitType  -> "unit "
+  | AddressType  -> "address "
   
   ;; 
 let print_ptype  (t:ptype)  = Printf.printf "%s\n" (ptype_to_string t) ;; 
@@ -78,6 +80,7 @@ let rec free_vars (t : ptype) : string list =
   (* 5.2 *)
   | UnitType  -> []
   | RefType t -> free_vars t
+  | AddressType -> []
 ;;
 
 (* Fonction pour généraliser un type en ajoutant ∀ autour des variables libres non présentes dans l'environnement *)
@@ -104,6 +107,7 @@ let rec rename_vars (t : ptype) (renamings : (string * string) list) : ptype =
       Forall (new_vars, rename_vars t' (new_renamings @ renamings))
   | UnitType -> t
   | RefType t'-> RefType (rename_vars t' renamings)
+  | AddressType-> t
 ;;
 
 (* Ouvrir un type quantifié universellement (enlever le ∀) *)
@@ -125,6 +129,7 @@ let rec occur_check (v : string) (t : ptype) : bool =
   (* 5.2 *)
   | UnitType -> false 
   | RefType t' -> occur_check v t' 
+  | AddressType -> false 
 ;;
 
 (* Recherche dans l'environnement *)
@@ -241,6 +246,24 @@ let rec generate_equa (te : Ast.pterm) (ty : ptype) (env : env) : equas =
     (* Ajouter x avec le type généralisé à l'environnement et générer des équations pour e2 *)
     let env' = (x, gen_t0) :: env in
     generate_equa e2 ty env'
+  (* 5.2 *)
+  | Unit -> [(ty,UnitType)] 
+  (* | Address a -> [(UnitType,ty)]  *)
+  | Ref(m) -> 
+    let t_type = VarType (new_var_ptype ()) in
+    let eqs_m = generate_equa m t_type env in
+    (ty, RefType t_type) :: eqs_m
+  | DeRef(m) -> 
+    let t_type = VarType (new_var_ptype ()) in
+    let eqs_m = generate_equa m (RefType t_type) env in
+    (ty, t_type) :: eqs_m
+  | Address _ -> [(ty, AddressType)]  
+  | Assign(e1,e2) -> 
+    let te_type = VarType (new_var_ptype ()) in
+    let eqs_e1 = generate_equa e1 (RefType te_type) env in
+    let eqs_e2 = generate_equa e2 te_type env in
+    (ty, UnitType) :: eqs_e1 @ eqs_e2
+    
 
 
 (* ! unification  *)
@@ -262,6 +285,7 @@ and substitute_type (v : string) (substitution : ptype) (t : ptype) : ptype =
       Forall (vars, new_t)  
   | UnitType -> t 
   | RefType t'-> RefType(substitute_type v substitution t') 
+  | AddressType -> AddressType   (* Pas de substitution dans AddressType *)
 (* Fonction de substitution dans une équation de typage *)
 and substitute_in_equation (v : string) (type_of_substitution : ptype) ((t1, t2) : equa) : equa =
   (substitute_type v type_of_substitution t1, substitute_type v type_of_substitution t2)
@@ -340,7 +364,7 @@ and apply_substitutions (t : ptype) (substitutions_acc : env) : ptype =
   (* 5.2 *)
   | UnitType -> t
   | RefType t' ->  RefType (apply_substitutions t' substitutions_acc)   
-
+  | AddressType -> t  (* AddressType reste inchangé *)
 (* Fonction pour mesurer le temps d'exécution avec Sys.time *)
 and timeout f timeout_duration =
   let start_time = Sys.time () in
@@ -365,7 +389,7 @@ and solve_system (eqs : equas) (substitutions_acc : env) : (equas * env) option 
         (* Appel à la fonction d'unification pour une étape *)
         let (next_eqs, new_substitutions) = unify_step eqs substitutions_acc in
         solve_system next_eqs new_substitutions  (* Résoudre récursivement le système *)
-      with Failure _ -> None  (* En cas d'échec d'unification, retourner None *)
+      with Failure e -> None  (* En cas d'échec d'unification, retourner None *)
 
 
 (* Fonction qui résout un système avec timeout et substitutions *)

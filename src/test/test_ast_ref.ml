@@ -23,6 +23,18 @@ let assign_tests = [
   ("let x = ref 3 in  let x:= 1 in !x  ", Let("x",Ref(Int 3),Let("y",Assign(Var "x",Int 1),DeRef(Var "x"))), Int 1);
   ("let x = ref () in  let x:= (2+3) in !x  ", Let("x",Ref(Unit),Let("y",Assign(Var "x",Add(Int 2,Int 3)),DeRef(Var "x"))), Int 5);
   ("let x = ref () in  let x:= (λx. x+2) in (!x) 2  ", Let("x",Ref(Unit),Let("y",Assign(Var "x",Abs("x",Add(Var"x",Int 2))),App(DeRef(Var "x"),Int 2))), Int 4);
+  ("let l = ref [] in let _ = l:=[2] in (hd !l) +2 ", 
+  Let(
+    "l",
+    Ref(List(Empty)),
+    Let("_",
+      Assign(
+        Var "l",
+        List(Cons(Int 2,Empty))
+      ),
+      Add(Head(DeRef(Var "l")),Int 2)
+    )
+  ), Int(4));
 ]
 let test_  (part:string)(name:string) (term:pterm) (expected:pterm) = 
   Printf.printf "\n--- Test %s : %s ---\n"  part name;

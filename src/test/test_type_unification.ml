@@ -70,6 +70,36 @@ let fix_tests = [
  
 ];;
 
+(* 5.2  *)
+let ref_tests = [
+  ("ref 2", Ref(Int 2), RefType(N));
+  ("ref (λx. x+3)", Ref(Abs("x",Add(Var "x",Int 3))), RefType(Arrow(N,N)));
+  ("ref (ref λx. x+3)", Ref(Ref(Abs("x",Add(Var "x",Int 3)))), RefType(RefType(Arrow(N,N))));
+]
+let deref_tests = [
+  ("let x = ref 3 in !x", Let("x",Ref(Int 3), DeRef(Var "x")), N);
+  ("let x = ref @3 in !x", Let("x",Ref(Address(3)), DeRef(Var "x")), AddressType);
+]
+
+let assign_tests = [
+  ("let x = ref 3 in x:=2", Let("x",Ref(Int 3), Assign(Var "x", Int 2)), UnitType);
+  ("let x = ref 3 in (let _ = x:=2 in !x)", Let("x",Ref(Int 3), Let("_",Assign(Var "x", Int 2),DeRef(Var "x"))), N);
+  (*! should fail *) 
+  (* ("let x = ref () in  let y = x:= (λx. x+2) in (!x) 2  ", Let("x",Ref(Unit),Let("y",Assign(Var "x",Abs("x",Add(Var"x",Int 2))),App(DeRef(Var "x"),Int 2))), N); *)
+  ("let l = ref [] in let _ = l:=[2] in (hd !l) +2 ", 
+    Let(
+      "l",
+      Ref(List(Empty)),
+      Let("_",
+        Assign(
+          Var "l",
+          List(Cons(Int 2,Empty))
+        ),
+        Add(Head(DeRef(Var "l")),Int 2)
+      )
+    ), N);
+
+]
 
 (* Fonction de test pour le typage *)
 let test_typing (part:string) (name:string) (term:pterm) (expected:ptype) = 
@@ -100,5 +130,12 @@ let _ =
   List.iter (fun (name, term, expected) -> test_typing "Fix" name term expected) fix_tests;
   Printf.printf "\n\n--- Tests : Let ---\n\n";
   List.iter (fun (name, term, expected) -> test_typing "Let" name term expected) let_tests;
+  Printf.printf "\n\n--- Tests : Ref ---\n\n";
+  List.iter (fun (name, term, expected) -> test_typing "Ref" name term expected) ref_tests;
+  Printf.printf "\n\n--- Tests : DeRef ---\n\n";
+  List.iter (fun (name, term, expected) -> test_typing "DeRef" name term expected) deref_tests;
+  List.iter (fun (name, term, expected) -> test_typing "Ref" name term expected) ref_tests;
+  Printf.printf "\n\n--- Tests : Assign ---\n\n";
+  List.iter (fun (name, term, expected) -> test_typing "Assign" name term expected) assign_tests;
 
 ;;
