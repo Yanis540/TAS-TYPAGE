@@ -7,6 +7,9 @@ type ptype =
   | N
   | ListType of ptype
   | Forall of string list * ptype 
+  (* 5.2 *)
+  | RefType of ptype
+  | UnitType              
   and env = (string * ptype) list  
 and equa = ptype * ptype
 and equas = (equa) list
@@ -22,6 +25,9 @@ let rec ptype_to_string (t : ptype) : string =
   | Forall (vars, t) -> 
     let vars_str = String.concat ", " vars in
     "∀" ^ vars_str ^ ". " ^ (ptype_to_string t)
+  | RefType t -> "ref "^ (ptype_to_string t) ^""
+  | UnitType  -> "unit "
+  
   ;; 
 let print_ptype  (t:ptype)  = Printf.printf "%s\n" (ptype_to_string t) ;; 
 let equa_to_string (e:equa) =
@@ -64,35 +70,40 @@ let rec free_vars (t : ptype) : string list =
   match t with
   | VarType x -> [x]
   | Arrow (t1, t2) -> List.append (free_vars t1) (free_vars t2)
+  | Nat  -> []
+  (* 4.2 *)
+  | N  -> []
   | ListType t -> free_vars t
   | Forall (vars, t) -> List.filter (fun v -> not (List.mem v vars)) (free_vars t)
-  | Nat | N -> []
+  (* 5.2 *)
+  | UnitType  -> []
+  | RefType t -> free_vars t
 ;;
 
 (* Fonction pour généraliser un type en ajoutant ∀ autour des variables libres non présentes dans l'environnement *)
 let generalize (t: ptype) (env: env) : ptype =
-  (* Variables présentes dans l'environnement *)
   let env_vars = List.map fst env in
-  (* Variables libres dans le type t *)
   let free_vars_in_t = List.filter (fun v -> not (List.mem v env_vars)) (free_vars t) in
-  (* Si des variables libres existent, on les quantifie universellement *)
   match free_vars_in_t with
-  | [] -> t  (* Pas de variables libres, on retourne le type tel quel *)
+  | [] -> t  
   | vars -> Forall (vars, t)  (* Ajout de ∀ pour chaque variable libre *)
 ;;
-(* Renommer les variables de type liées dans un ∀ pour éviter les conflits (barendregtisation) *)
 let rec rename_vars (t : ptype) (renamings : (string * string) list) : ptype =
   match t with
   | VarType x -> 
       (try VarType (List.assoc x renamings) with Not_found -> VarType x)
   | Arrow (t1, t2) -> Arrow (rename_vars t1 renamings, rename_vars t2 renamings)
+  | Nat 
+  (* 4.2 *)
+  | N -> t
   | ListType t -> ListType (rename_vars t renamings)
   | Forall (vars, t') -> 
       (* Générer de nouveaux noms pour les variables liées *)
       let new_vars = List.map (fun _ -> new_var_ptype ()) vars in
       let new_renamings = List.combine vars new_vars in
       Forall (new_vars, rename_vars t' (new_renamings @ renamings))
-  | Nat | N -> t
+  | UnitType -> t
+  | RefType t'-> RefType (rename_vars t' renamings)
 ;;
 
 (* Ouvrir un type quantifié universellement (enlever le ∀) *)
@@ -106,9 +117,14 @@ let rec occur_check (v : string) (t : ptype) : bool =
   match t with
   | VarType x -> x = v
   | Arrow (t1, t2) -> (occur_check v t1) || (occur_check v t2)
-  | Nat | N-> false
+  | Nat -> false
+  (* 4.2 *)
+  | N-> false
   | ListType t-> occur_check v t
   | Forall (_,t) -> (occur_check v t)
+  (* 5.2 *)
+  | UnitType -> false 
+  | RefType t' -> occur_check v t' 
 ;;
 
 (* Recherche dans l'environnement *)
@@ -149,17 +165,17 @@ let rec generate_equa (te : Ast.pterm) (ty : ptype) (env : env) : equas =
   (* 4.2 Entiers  *)
   | Int _ -> [(ty, N)]  (* Les entiers ont toujours le type N *)
   | Add (t1, t2) -> 
-    let eqs_t1 = generate_equa t1 N env in  (* Type attendu pour t1 : N *)
-    let eqs_t2 = generate_equa t2 N env in  (* Type attendu pour t2 : N *)
-    (ty, N) :: eqs_t1 @ eqs_t2  (* L'opérateur + produit aussi un entier, donc on égalise T avec N *)
+    let eqs_t1 = generate_equa t1 N env in
+    let eqs_t2 = generate_equa t2 N env in
+    (ty, N) :: eqs_t1 @ eqs_t2 
   | Sub (t1, t2) -> 
-    let eqs_t1 = generate_equa t1 N env in  (* Type attendu pour t1 : N *)
-    let eqs_t2 = generate_equa t2 N env in  (* Type attendu pour t2 : N *)
-    (ty, N) :: eqs_t1 @ eqs_t2  (* L'opérateur + produit aussi un entier, donc on égalise T avec N *)
+    let eqs_t1 = generate_equa t1 N env in
+    let eqs_t2 = generate_equa t2 N env in
+    (ty, N) :: eqs_t1 @ eqs_t2 
   | Mult (t1, t2) -> 
-    let eqs_t1 = generate_equa t1 N env in  (* Type attendu pour t1 : N *)
-    let eqs_t2 = generate_equa t2 N env in  (* Type attendu pour t2 : N *)
-    (ty, N) :: eqs_t1 @ eqs_t2  (* L'opérateur + produit aussi un entier, donc on égalise T avec N *)
+    let eqs_t1 = generate_equa t1 N env in
+    let eqs_t2 = generate_equa t2 N env in
+    (ty, N) :: eqs_t1 @ eqs_t2 
   (* 4.2 List *)
   (* pour les liste, comme je ne veux pas trop nous faire chier, je considère que tout les éléments d'une liste 
     doit avoir le même type (sinon on devrait implémenter le SumType ce qui encore plus chiant mdr) *)
@@ -235,16 +251,17 @@ and substitute_type (v : string) (substitution : ptype) (t : ptype) : ptype =
   | VarType _ -> t                      (* Si ce n'est pas la variable, ne rien changer *)
   | Arrow (t1, t2) -> Arrow (substitute_type v substitution t1, substitute_type v substitution t2) 
   (* Substitue récursivement dans les deux sous-types de la flèche *)
-  | Nat | N-> t                            (* Pas de substitution dans le type Nat *)
+  | Nat | N-> t
   | ListType t -> 
-    ListType (substitute_type v substitution t)  (* Substitue dans les listes *)
+    ListType (substitute_type v substitution t)  
   | Forall (vars, t') ->
     if List.mem v vars then 
-      t  (* La variable est liée dans le ∀, donc pas de substitution *)
+      t  
     else 
       let new_t = substitute_type v substitution t' in
-      Forall (vars, new_t)  (* Continue la substitution dans le corps du type si v n'est pas liée *)
-
+      Forall (vars, new_t)  
+  | UnitType -> t 
+  | RefType t'-> RefType(substitute_type v substitution t') 
 (* Fonction de substitution dans une équation de typage *)
 and substitute_in_equation (v : string) (type_of_substitution : ptype) ((t1, t2) : equa) : equa =
   (substitute_type v type_of_substitution t1, substitute_type v type_of_substitution t2)
@@ -294,6 +311,13 @@ and unify_step (eqs : equas) (substitutions_acc : env) : (equas * env) =
       let t2_open = open_forall t2_renamed in
       unify_step ((t1, t2_open) :: rest) substitutions_acc
   
+  (* 5.2 *)
+  | (UnitType, UnitType) :: rest ->
+    unify_step rest substitutions_acc
+
+  | (RefType t1, RefType t2) :: rest ->
+    (* si RefType t1 == RefType t2 => t1 == t2 *)
+    unify_step ((t1, t2) :: rest) substitutions_acc
     
   | _ -> failwith "Unification failed"  (* Sinon, on échoue *)
 
@@ -312,8 +336,10 @@ and apply_substitutions (t : ptype) (substitutions_acc : env) : ptype =
   | Forall (vars, t') ->
       (* Filtrer les substitutions pour enlever celles qui concernent les variables liées dans le ∀ *)
       let filtered_substitutions = List.filter (fun (x, _) -> not (List.mem x vars)) substitutions_acc in
-      Forall (vars, apply_substitutions t' filtered_substitutions)  (* Appliquer les substitutions filtrées dans le corps du ∀ *)
-
+      Forall (vars, apply_substitutions t' filtered_substitutions)  
+  (* 5.2 *)
+  | UnitType -> t
+  | RefType t' ->  RefType (apply_substitutions t' substitutions_acc)   
 
 (* Fonction pour mesurer le temps d'exécution avec Sys.time *)
 and timeout f timeout_duration =
