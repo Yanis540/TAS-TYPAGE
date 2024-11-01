@@ -98,7 +98,64 @@ let assign_tests = [
         Add(Head(DeRef(Var "l")),Int 2)
       )
     ), N);
+  (* should not fail because the List(Empty ) keeps the type unknown  *)
+  ("let l = ref [] in let _ = l:=[] in (hd !l) +2 ", 
+    Let(
+      "l",
+      Ref(List(Empty)),
+      Let("_",
+        Assign(
+          Var "l",  
+          List(Empty)
+        ),
+        Add(Head(DeRef(Var "l")),Int 2)
+      )
+    ), N);
 
+]
+let weak_tests = [
+  ("let l = ref [] in let _ = l := [1] in (hd !l) + 2",
+    Let(
+      "l",
+      Ref(List(Empty)), 
+      Let("_",
+        Assign(
+          Var "l",  
+          List(Cons(Int 1, Empty))
+        ),
+        Add(Head(DeRef(Var "l")), Int 2)  
+      )
+    ),
+    N
+  ); 
+  ("let l = ref [] in let _ = l := [()] in (hd !l) + 2",
+    Let(
+      "l",
+      Ref(List(Empty)),  
+      Let("_",
+        Assign(
+          Var "l", 
+          (* le type ici devient polymorphe faible en affectant à L le type [Unit] qui veut juste dire qu'il est plymorphe *)
+          List(Cons(Unit, Empty)) 
+        ),
+        Add(Head(DeRef(Var "l")), Int 2) 
+      )
+    ),
+    N);
+    ("let l = ref [] in let _ = l := [1] in (hd !l) + 2",
+    Let(
+      "l",
+      Ref(List(Cons(Unit,Empty))),  (* Référence à une liste vide, polymorphe initialement *)
+      Let("_",
+        Assign(
+          Var "l", 
+          (* on affecte pour l le type de [N] *)
+          List(Cons(Int 1, Empty))
+        ),
+        Add(Head(DeRef(Var "l")), Int 2) 
+      )
+    ),
+    N)
 ]
 
 (* Fonction de test pour le typage *)
@@ -137,5 +194,7 @@ let _ =
   List.iter (fun (name, term, expected) -> test_typing "Ref" name term expected) ref_tests;
   Printf.printf "\n\n--- Tests : Assign ---\n\n";
   List.iter (fun (name, term, expected) -> test_typing "Assign" name term expected) assign_tests;
+  Printf.printf "\n\n--- Tests : Weak ---\n\n";
+  List.iter (fun (name, term, expected) -> test_typing "Weak" name term expected) weak_tests;
 
 ;;

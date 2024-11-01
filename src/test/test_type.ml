@@ -7,7 +7,7 @@ open Type;;
 
  let env_ex = [("x", VarType "int")];;
 let test_term = App(Abs("x", Var "x"), Var "x");;
-let eqs = generate_equa test_term (VarType "T2") env_ex;;
+let eqs,_ = generate_equa test_term (VarType "T2") env_ex;;
 (* ! Occur Check  *)
 
 let t1 = Arrow (VarType "T1", VarType "T2");;  (* T1 -> T2 *)
@@ -70,7 +70,7 @@ let test_infer_type (name, term, env) =
   Printf.printf "\n--- Test d'Inférence de Type : %s ---\n" name;
   (* Tenter d'inférer le type avec un timeout de 2 secondes *)
   match infer_type term env 2.0 with
-  | Some ty -> Printf.printf "Le type inféré est : %s\n" (ptype_to_string ty)
+  | Some (ty,_) -> Printf.printf "Le type inféré est : %s\n" (ptype_to_string ty)
   | None -> Printf.printf "Erreur : le terme n'est pas typable ou timeout atteint.\n"
 ;;
 
