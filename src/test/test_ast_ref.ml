@@ -1,4 +1,5 @@
 open Ast;; 
+open Eval;; 
 (* Fonction de test pour la substitution *)
 
 

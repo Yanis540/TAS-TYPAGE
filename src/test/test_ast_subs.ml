@@ -1,4 +1,6 @@
 open Ast;; 
+open Eval;; 
+
 (* Fonction de test pour la substitution *)
 let test_substitution (name: string) (term: pterm) (x: string) (nterm: pterm) (expected: pterm) =
   Printf.printf "\n--- Test Substitution: %s ---\n" name;

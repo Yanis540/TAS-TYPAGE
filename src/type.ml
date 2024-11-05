@@ -1,5 +1,6 @@
 
 open Ast;;
+open Eval;;
 type ptype =  
   VarType of string 
   | Arrow of ptype * ptype 

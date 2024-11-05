@@ -1,10 +1,11 @@
 open Ast ;;
+open Eval ;;
 
 
 let abs_func : Ast.pterm = Abs("X",Abs("Y", App(Var("X"),Var("Y"))));;
 let varToReplace = "X";;
 let ntermToReplace = Abs("N",Abs("Z",App (Var("N"),Var("Z"))));;
-let abs_func_substitued_by_substitued_v2 = Ast.substitution varToReplace ntermToReplace abs_func;;
+let abs_func_substitued_by_substitued_v2 = Eval.substitution varToReplace ntermToReplace abs_func;;
 let t1 = Abs ("x", App (Var "x", Var "y"));;
 let t2 = Var "x";;
 let sub_t2_in_t1_result_v2 = substitution "y" t2 t1;;

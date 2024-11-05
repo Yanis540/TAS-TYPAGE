@@ -1,5 +1,7 @@
 open Ast;; 
 open Type;; 
+open Eval;; 
+
 
 (* ! génération des équations *)
 
@@ -93,7 +95,7 @@ let infer_tests = [
 let _ =
   Printf.printf "\n--- Génération d'équations ---\n";
   Printf.printf "Terme :  " ;
-  Ast.print_pterm test_term; 
+  print_pterm test_term; 
   Printf.printf "Equations générées: %s\n" (equas_to_string eqs); 
   Printf.printf "\n--- Occur Check ---\n";
   List.iter occur_check_test occur_check_examples; 
