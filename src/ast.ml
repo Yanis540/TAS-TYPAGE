@@ -1,8 +1,9 @@
 
 
-type 'a liste = Empty | Cons of 'a *'a liste;;
+type 'a liste = Empty | Cons of 'a *'a liste
+and pterm_list = pterm liste
 (*  Termes  *)
-type pterm = Var of string 
+and pterm = Var of string 
   | App of pterm * pterm  
   | Abs of string * pterm
   (* 4.1 : entiers *)
@@ -11,7 +12,7 @@ type pterm = Var of string
   | Sub of pterm * pterm 
   | Mult of pterm * pterm 
   (* 4.1 : list *)
-  | List of pterm liste  
+  | List of pterm_list  
   | Head of pterm  
   | Tail of pterm  
   (* 4.1 : If *)
