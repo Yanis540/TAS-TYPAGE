@@ -7,7 +7,9 @@ rule token = parse
     [' ' '\t' '\n' '\r']       { token lexbuf }     (* skip blanks *)
   | "let"                   { LET }
   | "in"                   { IN }
-  | "if"                    { IF }
+  | "ifZero"                    { IFZERO }
+  | "then"                    { THEN }
+  | "else"                    { ELSE }
   | "ifEmpty"                    { IFEMPTY }
   | "fix"                   { FIX }
   | "lambda"                   { LAMBDA }

@@ -4,8 +4,8 @@ open Ast (* On suppose que les types de données sont dans un fichier Ast.ml *)
 
 %token <int> INT
 %token <string> IDENT
-%token LET IF IFEMPTY FIX ADD SUB MULT HEAD TAIL REF DEREF ASSIGN AFFECT
-%token LPAREN RPAREN COMMA IN SEMICOLON LAMBDA  LBRA RBRA EOF
+%token LET IFZERO IFEMPTY FIX ADD SUB MULT HEAD TAIL REF DEREF ASSIGN AFFECT
+%token LPAREN RPAREN COMMA IN SEMICOLON LAMBDA  LBRA RBRA  THEN ELSE EOF
 
 %left ADD SUB   
 %left MULT DIV   
@@ -30,8 +30,8 @@ expr:
   | LAMBDA IDENT SEMICOLON expr {Abs($2,$4)}
   | HEAD expr          { Head $2 }
   | TAIL expr            { Tail $2 }
-  // | IF expr expr expr   { IfZero($2,$3,$4)}
-  // | IFEMPTY expr expr expr   { IfEmpty($2,$3,$4)}
+  | IFZERO LPAREN expr RPAREN THEN expr ELSE expr   { IfZero($3,$6,$8)}
+  | IFEMPTY LPAREN expr RPAREN THEN expr ELSE expr   { IfEmpty($3,$6,$8)}
 
   | LET IDENT AFFECT expr IN expr { Let ($2, $4, $6) }
   // | FIX expr                           { Fix $2 }

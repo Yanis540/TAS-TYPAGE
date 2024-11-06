@@ -1,0 +1,1 @@
+ifEmpty (hd[[]]) then 1 else 2
