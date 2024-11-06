@@ -289,13 +289,24 @@ let rec ltr_ctb_step (t : pterm) (mem:memory) : (pterm*memory) option =
   | Head (t) -> (
       match ltr_ctb_step t mem with 
       | Some (List(l),mem') -> Some(get_head_list l,mem') 
-      | _ -> failwith "Not a list"
+      | Some(l',mem') -> Some(Head(l'),mem')
+      | None -> (
+        match t with 
+        | List(l) -> Some(get_head_list l,mem)
+        | _ -> failwith "Not a list"
+      )
+        
     )
       
   | Tail (t) -> (
     match ltr_ctb_step t mem with 
     | Some (List(l),mem') -> Some(get_tail_list l,mem') 
-    | _ -> failwith "Not a list"
+    | Some(l',mem') -> Some(Tail(l'),mem') 
+    | None -> (
+      match t with 
+      | List(l) -> Some(get_tail_list l,mem)
+      | _ -> failwith "Not a list"
+    )
   )
   (*4.1 If *)
   | IfZero (Int(0),cons,alt) -> Some(cons,mem) 
