@@ -11,6 +11,7 @@ let examples_arth = [
   ("Sub et add : 2-1",Add(Sub(Int(5),Int(1)),Int(2)),Int(6));
   ("Mult : 5*2",Mult(Int(5),Int(2)),Int(10));
   ("Mult : 5*(1+2)",Mult(Int(5),Add(Int(1),Int(2))),Int(15));
+  ("(1+2) 1", (App(Add(Int 1,Int 2), Int 1)), Int 1);
 ];;
 
 

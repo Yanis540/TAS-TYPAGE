@@ -237,18 +237,22 @@ let rec ltr_ctb_step (t : pterm) (mem:memory) : (pterm*memory) option =
   (* Beta reduction *)
   | App (Abs (x, body), v) when is_value v ->
     Some ((substitution x v body),mem)
-  | App (m, n) ->
-      (match ltr_ctb_step m mem with
+  | App (m, n) ->(
+    match ltr_ctb_step m mem with
       (* M -> M' => M N -> M' N *)
       | Some (m',mem') -> Some (App (m', n),mem')
-      | None when (is_value m) = false ->None
-      | _  ->
-          (* Si la partie gauche est déjà une valeur, on essaie de réduire la partie droite *)
-          (
+      (* Si la partie gauche est déjà une valeur, on essaie de réduire la partie droite *)
+      | _  ->(
           match ltr_ctb_step n mem with
           | Some (n',mem') -> Some (App (m, n'),mem')
-          | None -> None)
-        )
+          (* si on arrive pas à réduire faudra vérifier que le côté à gauche est une fonction *)
+          | None -> (
+            match m with 
+            | Abs(_,_)-> None 
+            | _-> failwith "Application Left operand should be an application" 
+          )
+      )
+    )
   (*4.1 Entier *)
   | Add (t1, t2) ->( match ltr_ctb_step t1 mem with 
     | Some (t1',mem') -> Some (Add(t1',t2),mem')
@@ -388,4 +392,16 @@ let rec print_reduction_steps t mem =
       print_reduction_steps t' mem'
   | None ->
        Printf.printf "=> (forme normale)\n"
+;;
+
+
+let eval (t:pterm) =
+  match ltr_cbv_norm_timeout t [] 1.0 with
+  | Some (nf,mem) -> 
+    let prog = pterm_to_string t in 
+    let res = pterm_to_string nf in 
+    Printf.printf"\tProgram : %s \n" (prog); 
+    Printf.printf"\tResult : %s \n" (res); 
+  | None -> 
+      failwith "Divergence détectée (limite de réduction atteinte).\n"
 ;;

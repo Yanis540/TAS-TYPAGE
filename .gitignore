@@ -1,4 +1,8 @@
 *.cmo
-*.mly
+
 *.cmi
+parser.ml
+parser.mli
+parser.mli
+lexer.ml
 /src/exec
