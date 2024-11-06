@@ -319,7 +319,12 @@ let rec ltr_ctb_step (t : pterm) (mem:memory) : (pterm*memory) option =
     | Empty -> Some(cons,mem) 
     | Cons(_,_) -> Some (alt,mem)
   )
-  | IfEmpty (_,_,_) -> failwith "If condition should be a list element" 
+  | IfEmpty (cond,cons,alt) -> (
+    match ltr_ctb_step cond mem with 
+    | Some(cond',mem') -> Some(IfEmpty(cond',cons,alt),mem') 
+    | None -> failwith "If condition should be a list element" 
+    )
+    
   (*4.1 Fix *)
     
   | Fix (Abs (x, body)) -> 
