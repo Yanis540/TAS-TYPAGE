@@ -1,0 +1,5 @@
+let a = ref [] in (
+    let _ = (a := [2]) in 
+    !a
+)
+ 

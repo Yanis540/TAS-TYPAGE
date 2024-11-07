@@ -1,0 +1,5 @@
+let a = ref 1 in (
+    let _ = (a := 2) in 
+    !a
+)
+ 

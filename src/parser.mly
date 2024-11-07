@@ -37,7 +37,7 @@ expr:
   | FIX expr                           { Fix $2 }
   | REF expr                           { Ref $2 }
   | DEREF expr                         { DeRef $2 }
-  // | expr ASSIGN expr                   { Assign ($1, $3) }
+  | expr ASSIGN expr                   { Assign ($1, $3) }
   | LPAREN expr RPAREN                 { $2 }
   | expr expr                 { App($1,$2) }
 ;

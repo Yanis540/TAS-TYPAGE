@@ -26,7 +26,7 @@ rule token = parse
   | "["                    { LBRA }
   | "]"                    { RBRA }
   | ['0'-'9']+ as num       { INT (int_of_string num) }
-  | ['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '_']* as ident { IDENT ident }
+  | ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']* as ident { IDENT ident }
   | '('                     { LPAREN }
   | ')'                     { RPAREN }
   | ','                     { COMMA }
