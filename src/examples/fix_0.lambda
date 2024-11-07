@@ -1,0 +1,6 @@
+let fact = fix (lambda phi : (
+    lambda n : 
+      ifZero (n) then 1 else (
+        n* ((phi) (n-1) ) 
+    )
+)) in fact

@@ -34,7 +34,7 @@ expr:
   | IFEMPTY LPAREN expr RPAREN THEN expr ELSE expr   { IfEmpty($3,$6,$8)}
 
   | LET IDENT AFFECT expr IN expr { Let ($2, $4, $6) }
-  // | FIX expr                           { Fix $2 }
+  | FIX expr                           { Fix $2 }
   // | REF expr                           { Ref $2 }
   // | DEREF expr                         { DeRef $2 }
   // | expr ASSIGN expr                   { Assign ($1, $3) }

@@ -330,7 +330,13 @@ let rec ltr_ctb_step (t : pterm) (mem:memory) : (pterm*memory) option =
   | Fix (Abs (x, body)) -> 
     let body'= substitution x (Fix (Abs (x, body))) body in 
     Some (body',mem)
-  | Fix (_) ->failwith "Fix should be an abstraction"
+  | Fix (m) ->(
+    match ltr_ctb_step m mem with 
+    | Some(m',mem') -> Some(Fix(m'),mem')
+    | _ ->  failwith "Fix should be an abstraction"
+  )
+    
+   
   (*4.1 Let *)
   | Let (x,e1,e2) -> (
       let v = (
