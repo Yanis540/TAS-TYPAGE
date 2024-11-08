@@ -158,6 +158,13 @@ let weak_tests = [
     ),
     N)
 ]
+let sum_tests = [
+  ("Sum(G 1, x, 2 ,3 )", (Sum(G (Int 1),"x",Int 2, Int 3 )), N);
+  ("Sum(D 1, x, 2 , 3 )", (Sum(D (Int 1),"x",Int 2, Int 3 )), N);
+  ("Sum(G 1, x, 2 ,3 )", (Sum(G (Int 1),"x",Add(Var "x",Int 3),Int 3  )), N);
+  ("Sum(G succ, x, 1 ,3 )",(Sum(G(succ),"x",App(Var "x",Int 1),Int 2)),N);
+  ("Sum(G succ, x, x ,3 )",(Sum(G(succ),"x",Var "x",Abs("y",Add(Var "y",Int 1)))),Arrow(N,N));
+]
 
 (* Fonction de test pour le typage *)
 let test_typing (part:string) (name:string) (term:pterm) (expected:ptype) = 
@@ -197,5 +204,7 @@ let _ =
   List.iter (fun (name, term, expected) -> test_typing "Assign" name term expected) assign_tests;
   Printf.printf "\n\n--- Tests : Weak ---\n\n";
   List.iter (fun (name, term, expected) -> test_typing "Weak" name term expected) weak_tests;
+  Printf.printf "\n\n--- Tests : Sum ---\n\n";
+  List.iter (fun (name, term, expected) -> test_typing "Sum" name term expected) sum_tests;
 
 ;;

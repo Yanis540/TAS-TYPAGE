@@ -12,7 +12,9 @@ type ptype =
   | RefType of ptype
   | UnitType
   | AddressType                     
-  | Weak of ptype                     
+  | Weak of ptype       
+  (* 6 : Sum *)
+  | SumType of ptype * ptype
   and env = (string * ptype) list  
 and equa = ptype * ptype
 and equas = (equa) list
@@ -32,6 +34,7 @@ let rec ptype_to_string (t : ptype) : string =
   | UnitType  -> "unit "
   | AddressType  -> "address "
   | Weak t'  -> "weak (" ^(ptype_to_string t')^ ")"
+  | SumType (t',u)  -> "sum (" ^(ptype_to_string t')^ "," ^  (ptype_to_string u) ^ ")"
   
   ;; 
 let print_ptype  (t:ptype)  = Printf.printf "%s\n" (ptype_to_string t) ;; 
@@ -85,6 +88,7 @@ let rec free_vars (t : ptype) : string list =
   | RefType t -> free_vars t
   | AddressType -> []
   | Weak t' -> free_vars t'
+  | SumType (t1,t2) -> free_vars t1 @ free_vars t2
 ;;
 
 (* Fonction pour généraliser un type en ajoutant ∀ autour des variables libres non présentes dans l'environnement *)
@@ -113,6 +117,7 @@ let rec rename_vars (t : ptype) (renamings : (string * string) list) : ptype =
   | RefType t'-> RefType (rename_vars t' renamings)
   | AddressType-> t
   | Weak t'-> Weak(rename_vars t' renamings)
+  | SumType (t1,t2)-> SumType(rename_vars t1 renamings,rename_vars t2 renamings)
 ;;
 
 (* Ouvrir un type quantifié universellement (enlever le ∀) *)
@@ -136,6 +141,7 @@ let rec occur_check (v : string) (t : ptype) : bool =
   | RefType t' -> occur_check v t' 
   | AddressType -> false 
   | Weak t' -> occur_check v t' 
+  | SumType (t1,t2) -> (occur_check v t1) || (occur_check v t2) 
 ;;
 
 (* Recherche dans l'environnement *)
@@ -255,14 +261,11 @@ and generate_equa (te : Ast.pterm) (ty : ptype) (env : env) : equas *env =
   (* 4.2 Let *)
   | Let (x, e1, e2) -> 
     (* Inférer le type de e1 *)
-    Printf.printf"Let term : ";print_pterm (Let(x,e1,e2)); 
     let t0 = infer_type e1 env 2.0 in
     let is_expansive = not (is_non_expansive e1) in
     (* Utiliser `Gen` ou `GenF` selon l’expansivité de `e1` *)
     let (gen_t0,env') = match t0 with
       | Some (t,env') ->
-        Printf.printf"\t old env (e1) : "; print_env env;
-        Printf.printf"\t new env (e1) : "; print_env env';
         if not (is_expansive  ) || not (contains_weak_poly env') then 
           ((generalize t env' is_expansive),env')
         else (
@@ -291,16 +294,31 @@ and generate_equa (te : Ast.pterm) (ty : ptype) (env : env) : equas *env =
     let eqs_assign = (ty,UnitType)::eqs_e1 @ eqs_e2 in
     let _, substitutions = unify_step eqs_assign [] in
     (* Mettre à jour l'environnement avec les substitutions *)
-    Printf.printf"\t\tAssign : %s\n" (pterm_to_string (Assign(e1,e2)));
-    Printf.printf"\t\t\tAssign Env befor assignmenet : %s\n" (env_to_string env);
-    Printf.printf"\t\t\tAssign Env after assignmenet : %s\n" (env_to_string env'');
-    Printf.printf"\t\t\tAssign EQS after assignmenet : %s\n" (equas_to_string eqs_assign);
     let env_updated = update_weak_types_in_env env'' substitutions in
-    Printf.printf "\t\tEnv after assignment: %s\n" (env_to_string env_updated);
     (eqs_assign, env_updated)
 
     (* (eqs_assign, env'') *)
     (* (((ty, UnitType) :: eqs_e1 @ eqs_e2),env'') *)
+  (* 6 : Sum *)
+  | G t ->
+    let type_t = VarType (new_var_ptype ()) in
+    let type_u = VarType (new_var_ptype ()) in
+    let eqs, env' = generate_equa t type_t env in
+    ((ty, SumType(type_t, type_u)) :: eqs, env')
+
+| D t ->
+  let type_t = VarType (new_var_ptype ()) in
+  let type_u = VarType (new_var_ptype ()) in
+  let eqs, env' = generate_equa t type_t env in
+  ((ty, SumType(type_t, type_u)) :: eqs, env')
+
+| Sum (t, x, n1, n2) ->
+    let type_t = VarType (new_var_ptype ()) in
+    let type_u = VarType (new_var_ptype ()) in
+    let eqs_t, env' = generate_equa t (SumType(type_t, type_u)) env in
+    let eqs_n1, env_n1 = generate_equa n1 ty ((x, type_t) :: env') in
+    let eqs_n2, env_n2 = generate_equa n2 ty ((x, type_u) :: env_n1) in
+    (eqs_t @ eqs_n1 @ eqs_n2, env_n2)
     
 
 and  is_non_expansive (term : Ast.pterm) : bool =
@@ -340,6 +358,7 @@ and substitute_type (v : string) (substitution : ptype) (t : ptype) : ptype =
   | RefType t'-> RefType(substitute_type v substitution t') 
   | AddressType -> AddressType   (* Pas de substitution dans AddressType *)
   | Weak t' -> Weak (substitute_type v substitution t')   (* Pas de substitution dans AddressType *)
+  | SumType(t',u) -> SumType(substitute_type v substitution t',substitute_type v substitution u)
 (* Fonction de substitution dans une équation de typage *)
 and substitute_in_equation (v : string) (type_of_substitution : ptype) ((t1, t2) : equa) : equa =
   (substitute_type v type_of_substitution t1, substitute_type v type_of_substitution t2)
@@ -372,7 +391,7 @@ and unify_step (eqs : equas) (substitutions_acc : env) : (equas * env) =
   
   | (Arrow (t1_l, t1_r), Arrow (t2_l, t2_r)) :: rest -> 
       (* Si les deux types sont des flèches, on ajoute les équations pour les parties gauche et droite *)
-      Printf.printf "%s = %s\n" (ptype_to_string (Arrow (t1_l, t1_r))) (ptype_to_string (Arrow (t2_l, t2_r)));
+      (* Printf.printf "%s = %s\n" (ptype_to_string (Arrow (t1_l, t1_r))) (ptype_to_string (Arrow (t2_l, t2_r))); *)
       unify_step ((t1_l, t2_l) :: (t1_r, t2_r) :: rest) substitutions_acc
   | (ListType t1, ListType t2) :: rest -> 
     (* Si les deux types sont des listes, on unifie leurs éléments *)
@@ -403,7 +422,10 @@ and unify_step (eqs : equas) (substitutions_acc : env) : (equas * env) =
   | (RefType t1, RefType t2) :: rest ->
     (* si RefType t1 == RefType t2 => t1 == t2 *)
     unify_step ((t1, t2) :: rest) substitutions_acc
-    
+  | (SumType (t1_l, t1_r), SumType (t2_l, t2_r)) :: rest ->
+      (* Si les deux types sont des sommes, unifie les parties gauche et droite *)
+      unify_step ((t1_l, t2_l) :: (t1_r, t2_r) :: rest) substitutions_acc
+
   | _ -> failwith "Unification failed"  (* Sinon, on échoue *)
 
 (* Appliquer toutes les substitutions à un type *)
@@ -427,6 +449,7 @@ and apply_substitutions (t : ptype) (substitutions_acc : env) : ptype =
   | RefType t' ->  RefType (apply_substitutions t' substitutions_acc)   
   | AddressType -> t  (* AddressType reste inchangé *)
   | Weak t' -> Weak (apply_substitutions t' substitutions_acc)  (* Faible instantiation *)
+  | SumType (t',u) -> SumType (apply_substitutions t' substitutions_acc,apply_substitutions u substitutions_acc)
 (* Fonction pour mesurer le temps d'exécution avec Sys.time *)
 and timeout f timeout_duration =
   let start_time = Sys.time () in

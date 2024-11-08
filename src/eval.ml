@@ -51,10 +51,15 @@ and pterm_to_string (t : pterm) : string =
   | Let (var, t1, t2) -> "Let ( " ^ var ^ " = " ^ (pterm_to_string t1) ^ " in " ^ (pterm_to_string t2) ^ " )"
   (* 5.1 *)
   | Unit -> "()"
-  | Address a -> "ref (" ^(address_to_string a)^")"
+  | Address a -> "address (" ^(address_to_string a)^")"
   | Ref r -> "ref (" ^(pterm_to_string r)^")"
   | DeRef r -> "! " ^(pterm_to_string r)
   | Assign (e1,e2) -> (pterm_to_string e1) ^":= " ^(pterm_to_string e2)
+  (* 6 : Sum  *)
+  | G e -> "G (" ^(pterm_to_string e)^")"
+  | D e -> "D (" ^(pterm_to_string e)^")"
+  | Sum(e,x,e1,e2) -> "Sum ("^(pterm_to_string e) ^","^ x ^","  ^(pterm_to_string e1) ^","^(pterm_to_string e2) ^")"
+
 ;;
 
 let print_pterm (t:pterm) = 
@@ -134,6 +139,11 @@ let rec alpha_conv (t:pterm)  (acc:rename_bindings): pterm =
   | Ref e -> Ref(alpha_conv e acc)  
   | DeRef e -> DeRef(alpha_conv e acc)  
   | Assign (e1,e2) -> Assign(alpha_conv e1 acc,alpha_conv e2 acc)  
+  (* 6 : Sum  *)
+  | G e -> G(alpha_conv e acc)
+  | D e -> D(alpha_conv e acc)
+  | Sum(m,x,n1,n2) -> Sum ((alpha_conv m acc),x,(alpha_conv n1 acc),(alpha_conv n2 acc))
+
 
 (* alpha conversion spéciale pour les listes *)
 and alpha_conv_liste (lst : pterm liste ) (acc:rename_bindings) : pterm liste = 
@@ -201,6 +211,11 @@ let rec substitution (x:string) (nterm:pterm) (t:pterm)  : pterm  =
   | Address _ -> t 
   | DeRef e -> DeRef(substitution x nterm e) 
   | Assign (e1,e2) -> Assign(substitution x nterm e1, substitution x nterm e2) 
+  (* 6 : Sum  *)
+  | G e -> G(substitution x nterm e)
+  | D e -> D(substitution x nterm e)
+  | Sum(m,x,n1,n2) -> Sum ((substitution x nterm m),x,(substitution x nterm n1),(substitution x nterm n2))
+  
   
 (* Fonction auxiliaire pour la substitution dans une liste de termes *)
 and substitution_liste (x: string) (nterm: pterm) (lst: pterm liste) : pterm liste =
@@ -379,6 +394,23 @@ let rec ltr_ctb_step (t : pterm) (mem:memory) : (pterm*memory) option =
       | None -> failwith "Should not Occur, can't reduce left and right" (* should not occur *) 
     )
   )
+   (* 6 : Sum  *)
+  | G m -> (
+    match ltr_ctb_step m mem with 
+    | Some(m',mem') -> Some(G(m),mem')
+    | None -> None
+  )
+  (* 6 : Sum *)
+  | D m -> (
+    match ltr_ctb_step m mem with 
+    | Some(m',mem') -> Some(D(m),mem')
+    | None -> None
+  )
+  | Sum(G m,x,n1,_) -> 
+    Some(substitution x m n1, mem )
+  | Sum(D m,x,_,n2) -> 
+    Some(substitution x m n2, mem )
+   
   | _ -> None  (* Une valeur ne peut pas être réduite *)
 
 and ltr_cbv_norm (t : pterm) (mem:memory): (pterm *memory) =

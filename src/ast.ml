@@ -29,6 +29,10 @@ and pterm = Var of string
   | Address of address
   | DeRef of pterm
   | Assign of pterm * pterm
+  (* 6 : Sum  *)
+  | G of pterm 
+  | D of pterm 
+  | Sum of pterm * string * pterm * pterm 
 and address = int
 and binding  = address * pterm
 and memory = (binding) list;;

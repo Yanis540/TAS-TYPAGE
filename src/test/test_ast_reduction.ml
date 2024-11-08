@@ -59,6 +59,16 @@ let examples_let =[
   ("let x = 3 in x", (Let("x",Int 3,Var "x")), Int 3);
   ("let x = 4 in x+1", (Let("x",Int 4 ,Add(Var "x",Int 1))), Int 5);
 ] 
+
+
+(*! Sum example *)
+let examples_sum = [
+  ("Sum(G 1, x, 2 ,3 )", (Sum(G (Int 1),"x",Int 2, Int 3 )), Int 2);
+  ("Sum(D 1, x, 2 , 3 )", (Sum(D (Int 1),"x",Int 2, Int 3 )), Int 3);
+  ("Sum(G 1, x, 2 ,3 )", (Sum(G (Int 1),"x",Add(Var "x",Int 3),Int 3  )), Int 4);
+  ("Sum(G succ, x, 1 ,3 )",(Sum(G(succ),"x",App(Var "x",Int 1),Int 2)),Int 2);
+]
+
 let test_  (part:string)(name:string) (term:pterm) (expected:pterm) = 
   Printf.printf "\n--- Test %s : %s ---\n"  part name;
   try 
@@ -92,4 +102,6 @@ let _ =
   List.iter (fun (name,term,expected) -> test_ "If" name term expected ) examples_if;
   Printf.printf "\n\n\n--- Let  ---\n\n\n";
   List.iter (fun (name,term,expected) -> test_ "Let" name term expected ) examples_let;
+  Printf.printf "\n\n\n--- Sum  ---\n\n\n";
+  List.iter (fun (name,term,expected) -> test_ "Sum" name term expected ) examples_sum;
 ;;
