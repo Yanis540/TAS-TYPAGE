@@ -73,7 +73,6 @@ let var_counter_ptype : int ref = ref 0;;
 let new_var_ptype () : string = var_counter_ptype := ! var_counter_ptype + 1;
 "T"^( string_of_int ! var_counter_ptype );; 
 
-(* Fonction pour obtenir les variables libres dans un type *)
 let rec free_vars (t : ptype) : string list =
   match t with
   | VarType x -> [x]
@@ -96,7 +95,7 @@ let generalize (t: ptype) (env: env) (is_expansive: bool) : ptype =
   let env_vars = List.map fst env in
   let free_vars_in_t = List.filter (fun v -> not (List.mem v env_vars)) (free_vars t) in
   match free_vars_in_t with
-  | [] -> t  (* Pas de variables libres, retourne le type tel quel *)
+  | [] -> t 
   | vars -> if is_expansive then Weak(Forall(vars,t)) else Forall(vars,t)
 ;;
 let rec rename_vars (t : ptype) (renamings : (string * string) list) : ptype =
@@ -144,7 +143,6 @@ let rec occur_check (v : string) (t : ptype) : bool =
   | SumType (t1,t2) -> (occur_check v t1) || (occur_check v t2) 
 ;;
 
-(* Recherche dans l'environnement *)
 let rec search_type (v : string) (e : env) : ptype =
   match e with
   | [] -> failwith ("Variable non trouvée: " ^ v)
@@ -158,47 +156,38 @@ let contains_weak_poly (env: env) : bool =
     | _ -> false
   ) env
 ;;
-(* Mettre à jour les types Weak dans l'environnement après une assignation *)
 let rec update_weak_types_in_env (env : env) (substitutions : env) : env =
   List.map (fun (v, t) ->
     match t with
-    | Weak _ -> (v, apply_substitutions t substitutions)  (* Appliquer les substitutions aux types faibles *)
+    | Weak _ -> (v, apply_substitutions t substitutions)  
     | _ -> (v, t)
   ) env
 
 
-(* Génération d'équations de typage à partir d'un terme *)
 and generate_equa (te : Ast.pterm) (ty : ptype) (env : env) : equas *env =
   match te with
   | Var v -> 
-      (* Si le terme est une variable, on génère l'équation T_v = T *)
       let t_v = search_type v env in
       ([(t_v, ty)],env)
   
   | Abs (x, body) -> 
-      (* Si le terme est une abstraction, on prend deux variables de type fraiches *)
       let ta = VarType (new_var_ptype ()) in
       let tr = VarType (new_var_ptype ()) in
       let env' = (x, ta) :: env in
-      (* On génère l'équation T = Ta -> Tr *)
       let eq1 = (ty, Arrow (ta, tr)) in
-      (* On génère récursivement les équations du corps avec le type Tr *)
       let eqs_body,env'' = generate_equa body tr env' in
       (eq1 :: eqs_body,env'')
   
   | App (t1, t2) -> 
-      (* Si le terme est une application, on prend une variable de type fraiche Ta *)
       if contains_weak_poly env then
         failwith "Cannot copy weakly polymorphic types in application context"
       else 
       let ta = VarType (new_var_ptype ()) in
-      (* On génère les équations pour t1 avec le type cible Ta -> T *)
       let (eqs_t1,env') = generate_equa t1 (Arrow (ta, ty)) env in
-      (* On génère les équations pour t2 avec le type cible Ta *)
       let (eqs_t2,env'') = generate_equa t2 ta env' in
       (eqs_t1 @ eqs_t2,env'')
   (* 4.2 Entiers  *)
-  | Int _ -> ([(ty, N)],env)  (* Les entiers ont toujours le type N *)
+  | Int _ -> ([(ty, N)],env)
   | Add (t1, t2) -> 
     let (eqs_t1,env') = generate_equa t1 N env in
     let (eqs_t2,env'') = generate_equa t2 N env' in
@@ -217,7 +206,7 @@ and generate_equa (te : Ast.pterm) (ty : ptype) (env : env) : equas *env =
   | List lst ->
     let ta = VarType (new_var_ptype ()) in
       (match lst with
-       | Empty ->(([(ty, Weak (ListType ta))]),env) (* Utilisation de `Weak` pour une liste vide *)
+       | Empty ->(([(ty, Weak (ListType ta))]),env)
        | Cons (hd, tl) -> 
            let (eqs_hd,env') = generate_equa hd ta env in
            let (eqs_tl,env'') = generate_equa (List tl) (ListType ta) env' in
@@ -239,9 +228,9 @@ and generate_equa (te : Ast.pterm) (ty : ptype) (env : env) : equas *env =
     ((eqs_cond @ eqs_cons @ eqs_alt),env''')
   | IfEmpty (cond, cons, alt) -> 
     let ta = VarType (new_var_ptype ()) in
-    let (eqs_cond,env') = generate_equa cond (ListType ta) env in  (* La condition doit être une liste *)
-    let (eqs_cons,env'') = generate_equa cons ty env' in  (* Le type du conséquent doit être le même que le type cible *)
-    let (eqs_alt,env''') = generate_equa alt ty env'' in    (* Le type de l'alternant doit être le même que le type cible *)
+    let (eqs_cond,env') = generate_equa cond (ListType ta) env in  
+    let (eqs_cons,env'') = generate_equa cons ty env' in  
+    let (eqs_alt,env''') = generate_equa alt ty env'' in   
     ((eqs_cond @ eqs_cons @ eqs_alt),env''')
   (* 4.2 Fix *)
   (* Fix  *)
@@ -277,7 +266,6 @@ and generate_equa (te : Ast.pterm) (ty : ptype) (env : env) : equas *env =
     generate_equa e2 ty env''
   (* 5.2 *)
   | Unit -> ([(ty,UnitType)],env) 
-  (* | Address a -> [(UnitType,ty)]  *)
   | Ref(m) -> 
     let t_type = VarType (new_var_ptype ()) in
     let (eqs_m,env') = generate_equa m t_type env in
@@ -297,8 +285,6 @@ and generate_equa (te : Ast.pterm) (ty : ptype) (env : env) : equas *env =
     let env_updated = update_weak_types_in_env env'' substitutions in
     (eqs_assign, env_updated)
 
-    (* (eqs_assign, env'') *)
-    (* (((ty, UnitType) :: eqs_e1 @ eqs_e2),env'') *)
   (* 6 : Sum *)
   | G t ->
     let type_t = VarType (new_var_ptype ()) in
