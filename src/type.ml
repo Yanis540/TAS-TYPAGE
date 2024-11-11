@@ -157,12 +157,36 @@ let contains_weak_poly (env: env) : bool =
   ) env
 ;;
 let rec update_weak_types_in_env (env : env) (substitutions : env) : env =
-  List.map (fun (v, t) ->
+  let rec substitute_weak t =
     match t with
-    | Weak _ -> (v, apply_substitutions t substitutions)  
-    | _ -> (v, t)
-  ) env
+    | Weak inner ->
+        let concrete_type = apply_substitutions inner substitutions in
+        Printf.printf "[DEBUG - Substitute Weak Inner] Weak(%s) updated to %s\n"
+          (ptype_to_string inner) (ptype_to_string concrete_type);
+        substitute_weak concrete_type (* Continuer à traverser récursivement *)
+    | RefType inner ->
+        RefType (substitute_weak inner) (* Vérifier les types imbriqués dans Ref *)
+    | ListType inner ->
+        ListType (substitute_weak inner) (* Vérifier les types imbriqués dans List *)
+    | Forall(vars, inner) ->
+        Forall(vars, substitute_weak inner) (* Vérifier les types sous Forall *)
+    | SumType(t1, t2) ->
+        SumType(substitute_weak t1, substitute_weak t2) (* Vérifier les types de somme *)
+    | Arrow(t1, t2) ->
+        Arrow(substitute_weak t1, substitute_weak t2) (* Vérifier les flèches *)
+    | _ -> apply_substitutions t substitutions (* Substituer si possible *)
+  in
 
+  let updated_env = List.map (fun (v, t) ->
+    let updated_t = substitute_weak t in
+    Printf.printf "[DEBUG - Update Env Entry] %s : %s -> %s\n" 
+      v (ptype_to_string t) (ptype_to_string updated_t);
+    (v, updated_t)
+  ) env in
+
+  Printf.printf "[DEBUG - Updating env SUBSTITUTIONS] %s\n" (env_to_string substitutions);
+  Printf.printf "[DEBUG - Updated Env] %s\n" (env_to_string updated_env);
+  updated_env
 
 and generate_equa (te : Ast.pterm) (ty : ptype) (env : env) : equas *env =
   match te with
@@ -252,18 +276,25 @@ and generate_equa (te : Ast.pterm) (ty : ptype) (env : env) : equas *env =
     (* Inférer le type de e1 *)
     let t0 = infer_type e1 env 2.0 in
     let is_expansive = not (is_non_expansive e1) in
-    (* Utiliser `Gen` ou `GenF` selon l’expansivité de `e1` *)
-    let (gen_t0,env') = match t0 with
-      | Some (t,env') ->
-        if not (is_expansive  ) || not (contains_weak_poly env') then 
-          ((generalize t env' is_expansive),env')
-        else (
-          failwith "Cannot copy weakly polymorphic types in expansive let context")
-      | None -> failwith ("Type inference failed for value for var: " ^ x)
+    let (gen_t0, env') = match t0 with
+      | Some (t, env') ->
+          Printf.printf "[DEBUG - Let Infered type] %s : %s \n" x (ptype_to_string t);
+          if not is_expansive || not (contains_weak_poly env') then 
+            (generalize t env' is_expansive, env')
+          else failwith "Cannot copy weakly polymorphic types in expansive let context"
+      | None -> failwith ("Type inference failed for var: " ^ x)
     in
     (* Ajouter x avec le type généralisé dans l'environnement *)
     let env'' = (x, gen_t0) :: env' in
-    generate_equa e2 ty env''
+
+    (* Vérifier si une spécialisation est nécessaire *)
+    let specialized_env =
+      if is_expansive then
+        update_weak_types_in_env env'' [(x, gen_t0)]
+      else env''
+    in
+
+    generate_equa e2 ty specialized_env
   (* 5.2 *)
   | Unit -> ([(ty,UnitType)],env) 
   | Ref(m) -> 
@@ -280,6 +311,7 @@ and generate_equa (te : Ast.pterm) (ty : ptype) (env : env) : equas *env =
     let (eqs_e1,env') = generate_equa e1 (RefType te_type) env in
     let (eqs_e2,env'') = generate_equa e2 te_type env' in
     let eqs_assign = (ty,UnitType)::eqs_e1 @ eqs_e2 in
+    Printf.printf "[DEBUG - Assign ]\t Assign: %s  \n\t type :%s \n\t equations %s \n" (pterm_to_string (Assign(e1,e2))) (ptype_to_string te_type) (equas_to_string eqs_assign); 
     let _, substitutions = unify_step eqs_assign [] in
     (* Mettre à jour l'environnement avec les substitutions *)
     let env_updated = update_weak_types_in_env env'' substitutions in
@@ -292,19 +324,19 @@ and generate_equa (te : Ast.pterm) (ty : ptype) (env : env) : equas *env =
     let eqs, env' = generate_equa t type_t env in
     ((ty, SumType(type_t, type_u)) :: eqs, env')
 
-| D t ->
-  let type_t = VarType (new_var_ptype ()) in
-  let type_u = VarType (new_var_ptype ()) in
-  let eqs, env' = generate_equa t type_t env in
-  ((ty, SumType(type_t, type_u)) :: eqs, env')
-
-| Sum (t, x, n1, n2) ->
+  | D t ->
     let type_t = VarType (new_var_ptype ()) in
     let type_u = VarType (new_var_ptype ()) in
-    let eqs_t, env' = generate_equa t (SumType(type_t, type_u)) env in
-    let eqs_n1, env_n1 = generate_equa n1 ty ((x, type_t) :: env') in
-    let eqs_n2, env_n2 = generate_equa n2 ty ((x, type_u) :: env_n1) in
-    (eqs_t @ eqs_n1 @ eqs_n2, env_n2)
+    let eqs, env' = generate_equa t type_t env in
+    ((ty, SumType(type_t, type_u)) :: eqs, env')
+
+  | Sum (t, x, n1, n2) ->
+      let type_t = VarType (new_var_ptype ()) in
+      let type_u = VarType (new_var_ptype ()) in
+      let eqs_t, env' = generate_equa t (SumType(type_t, type_u)) env in
+      let eqs_n1, env_n1 = generate_equa n1 ty ((x, type_t) :: env') in
+      let eqs_n2, env_n2 = generate_equa n2 ty ((x, type_u) :: env_n1) in
+      (eqs_t @ eqs_n1 @ eqs_n2, env_n2)
     
 
 and  is_non_expansive (term : Ast.pterm) : bool =
@@ -320,7 +352,7 @@ and  is_non_expansive (term : Ast.pterm) : bool =
     )
   | App (t1, t2) -> is_non_expansive t1 && is_non_expansive t2
   | Let (_, e1, e2) -> is_non_expansive e1 && is_non_expansive e2
-  | Ref (_) -> true
+  | Ref (_) -> false
   | _ -> false
 
 (* ! unification  *)
@@ -377,18 +409,21 @@ and unify_step (eqs : equas) (substitutions_acc : env) : (equas * env) =
   
   | (Arrow (t1_l, t1_r), Arrow (t2_l, t2_r)) :: rest -> 
       (* Si les deux types sont des flèches, on ajoute les équations pour les parties gauche et droite *)
-      (* Printf.printf "%s = %s\n" (ptype_to_string (Arrow (t1_l, t1_r))) (ptype_to_string (Arrow (t2_l, t2_r))); *)
       unify_step ((t1_l, t2_l) :: (t1_r, t2_r) :: rest) substitutions_acc
   | (ListType t1, ListType t2) :: rest -> 
     (* Si les deux types sont des listes, on unifie leurs éléments *)
     unify_step ((t1, t2) :: rest) substitutions_acc
   | (Weak t1, t2) :: rest | (t2, Weak t1) :: rest -> 
       (* Cas spécial pour Weak : si une partie est Weak, remplacer Weak par le type concret lors de l'unification *)
-      Printf.printf "Subs Weak t1 : %s, with t2 : %s\n" (ptype_to_string t1) (ptype_to_string t2); 
-      let substituted_system = substitute_in_system (ptype_to_string t1) t2 rest in
-      let new_substitutions = (ptype_to_string t1, t2) :: substitutions_acc in
-      Printf.printf "Substitued system : %s \n" (equas_to_string substituted_system); 
-      unify_step substituted_system new_substitutions
+      Printf.printf "[DEBUG - Unify Weak] Trying to unify Weak(%s) with %s\n" 
+      (ptype_to_string t1) (ptype_to_string t2);
+        if is_compatible t1 t2 then
+          let substituted_system = substitute_in_system (ptype_to_string t1) t2 rest in
+          let new_substitutions = (ptype_to_string t1, t2) :: substitutions_acc in
+          unify_step substituted_system new_substitutions
+        else
+          failwith ("Unexpected weak polymorphism case " ^(ptype_to_string (Weak t1))^ " with " ^ (ptype_to_string t2))
+    
   | (Forall (vars, t1'), t2) :: rest ->
       (* Barendregtisation et ouverture du ∀ *)
       let t1_renamed = rename_vars t1' [] in
@@ -413,7 +448,12 @@ and unify_step (eqs : equas) (substitutions_acc : env) : (equas * env) =
       unify_step ((t1_l, t2_l) :: (t1_r, t2_r) :: rest) substitutions_acc
 
   | _ -> failwith "Unification failed"  (* Sinon, on échoue *)
-
+and is_compatible t1 t2 =
+  match (t1, t2) with
+  | (ListType a, ListType b) -> is_compatible a b
+  | (Weak t, t') | (t', Weak t) -> is_compatible t t'
+  | (VarType t1',_) -> true
+  | _ -> t1 = t2
 (* Appliquer toutes les substitutions à un type *)
 and apply_substitutions (t : ptype) (substitutions_acc : env) : ptype =
   match t with
@@ -459,6 +499,7 @@ and solve_system (eqs : equas) (substitutions_acc : env) : (equas * env) option 
       try
         (* Appel à la fonction d'unification pour une étape *)
         let (next_eqs, new_substitutions) = unify_step eqs substitutions_acc in
+        Printf.printf "[DEBUG - Solve ]  : Substitutions après une étape d'unification : %s\n" (env_to_string new_substitutions);
         solve_system next_eqs new_substitutions  (* Résoudre récursivement le système *)
       with Failure e -> None  (* En cas d'échec d'unification, retourner None *)
 
