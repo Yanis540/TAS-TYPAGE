@@ -21,7 +21,7 @@ toutes les parties du projet ont été implémentées notamment la partie du pol
 J'ai ajouté comme extension : 
 - **lexer/parser** du lambda calcul  
 - **Types Sommes**  
-- **Weak** : marche bien x) (  
+- **Weak** : Le weak marche bien (j'ai passé énormément de temps )
 
 # Éxecution 
 ##  Tests
