@@ -21,6 +21,7 @@ toutes les parties du projet ont été implémentées notamment la partie du pol
 J'ai ajouté comme extension : 
 - **lexer/parser** du lambda calcul  
 - **Types Sommes**  
+- **Weak** : marche bien x) (  
 
 # Éxecution 
 ##  Tests
@@ -40,15 +41,3 @@ dans un terminal lancez :
 ./run-parser.sh
 ```
 Vous aurez les résultats de de touts les exemples
-
-# Problème rencontré  
-Malgré que j'ai implémenté le polymorphisme faible (Weak) mais il y'a un petit soucis que je n'arrive pas à régler c'est l'exemple suivant : 
-```Ocaml
-let l := [] in let _ = (l:=[]) in (hd (l)) + 2
-```
-et aussi 
-```Ocaml
-let l := [] in let _ = (l:=[]) in (hd (l)) + 2
-```
-
-qui passe dans le typeur mais qui ne sont pas sensé passé, j'ai passé la semaine à essayer de le corriger ça ne sert à rien de le débeuger encore plus. 
