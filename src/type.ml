@@ -163,18 +163,18 @@ let rec update_weak_types_in_env (env : env) (substitutions : env) : env =
         let concrete_type = apply_substitutions inner substitutions in
         Printf.printf "[DEBUG - Substitute Weak Inner] Weak(%s) updated to %s\n"
           (ptype_to_string inner) (ptype_to_string concrete_type);
-        substitute_weak concrete_type (* Continuer à traverser récursivement *)
+        substitute_weak concrete_type 
     | RefType inner ->
-        RefType (substitute_weak inner) (* Vérifier les types imbriqués dans Ref *)
+        RefType (substitute_weak inner) 
     | ListType inner ->
-        ListType (substitute_weak inner) (* Vérifier les types imbriqués dans List *)
+        ListType (substitute_weak inner)
     | Forall(vars, inner) ->
-        Forall(vars, substitute_weak inner) (* Vérifier les types sous Forall *)
+        Forall(vars, substitute_weak inner) 
     | SumType(t1, t2) ->
-        SumType(substitute_weak t1, substitute_weak t2) (* Vérifier les types de somme *)
+        SumType(substitute_weak t1, substitute_weak t2)
     | Arrow(t1, t2) ->
-        Arrow(substitute_weak t1, substitute_weak t2) (* Vérifier les flèches *)
-    | _ -> apply_substitutions t substitutions (* Substituer si possible *)
+        Arrow(substitute_weak t1, substitute_weak t2) 
+    | _ -> apply_substitutions t substitutions 
   in
 
   let updated_env = List.map (fun (v, t) ->
@@ -246,9 +246,9 @@ and generate_equa (te : Ast.pterm) (ty : ptype) (env : env) : equas *env =
 
   (* 4.2 If *)
   | IfZero (cond, cons, alt) -> 
-    let (eqs_cond,env') = generate_equa cond N env in  (* La condition doit être un entier *)
-    let (eqs_cons,env'') = generate_equa cons ty env' in  (* Le type du conséquent doit être le même que le type cible *)
-    let (eqs_alt,env''') = generate_equa alt ty env'' in    (* Le type de l'alternant doit être le même que le type cible *)
+    let (eqs_cond,env') = generate_equa cond N env in 
+    let (eqs_cons,env'') = generate_equa cons ty env' in  
+    let (eqs_alt,env''') = generate_equa alt ty env'' in    
     ((eqs_cond @ eqs_cons @ eqs_alt),env''')
   | IfEmpty (cond, cons, alt) -> 
     let ta = VarType (new_var_ptype ()) in

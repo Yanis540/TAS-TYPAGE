@@ -175,14 +175,14 @@ let rec substitution (x:string) (nterm:pterm) (t:pterm)  : pterm  =
           Abs (y, substitution x nterm m)
 
   (* 4.1 : entier *)
-  | Int n -> Int n  (* Les entiers ne nécessitent pas de substitution *)
-  | Add (t1, t2) -> Add (substitution x nterm t1, substitution x nterm t2)  (* Substitution dans les additions *)
-  | Sub (t1, t2) -> Sub (substitution x nterm t1, substitution x nterm t2)  (* Substitution dans les soustractions *)
-  | Mult (t1, t2) -> Mult (substitution x nterm t1, substitution x nterm t2)  (* Substitution dans les soustractions *)
+  | Int n -> Int n 
+  | Add (t1, t2) -> Add (substitution x nterm t1, substitution x nterm t2)  
+  | Sub (t1, t2) -> Sub (substitution x nterm t1, substitution x nterm t2)  
+  | Mult (t1, t2) -> Mult (substitution x nterm t1, substitution x nterm t2)  
   (* 4.1 : list *)
-  | List l -> List (substitution_liste x nterm l)  (* Substitution dans les listes *)
-  | Head t -> Head (substitution x nterm t)  (* Substitution dans l'opération Head *)
-  | Tail t -> Tail (substitution x nterm t)  (* Substitution dans l'opération Tail *)
+  | List l -> List (substitution_liste x nterm l)  
+  | Head t -> Head (substitution x nterm t)  
+  | Tail t -> Tail (substitution x nterm t)  
   (* 4.1 : If *)
   | IfZero (cond, cons, alt) -> 
       let cond' = substitution x nterm cond in 
@@ -200,12 +200,13 @@ let rec substitution (x:string) (nterm:pterm) (t:pterm)  : pterm  =
   | Let (y, e1, e2) ->
       let e1' = substitution x nterm e1 in
       if y = x then
-        Let (y, e1', e2)  (* Pas de substitution dans e2 car y est lié *)
+        (* Pas de substitution dans e2 car y est lié *)
+        Let (y, e1', e2) 
       else
         Let (y, e1', substitution x nterm e2)
   (* 5.2 : Unit *)
   | Unit -> t 
-  (* 5.2 : Unit *)
+  (* 5.2 : Ref *)
 
   | Ref e -> Ref(substitution x nterm e) 
   | Address _ -> t 
@@ -217,10 +218,9 @@ let rec substitution (x:string) (nterm:pterm) (t:pterm)  : pterm  =
   | Sum(m,x,n1,n2) -> Sum ((substitution x nterm m),x,(substitution x nterm n1),(substitution x nterm n2))
   
   
-(* Fonction auxiliaire pour la substitution dans une liste de termes *)
 and substitution_liste (x: string) (nterm: pterm) (lst: pterm liste) : pterm liste =
   match lst with
-  | Empty -> Empty  (* Liste vide : pas de substitution *)
+  | Empty -> Empty
   | Cons (hd, tail) -> Cons (substitution x nterm hd, substitution_liste x nterm tail)
 ;;
 
@@ -411,7 +411,7 @@ let rec ltr_ctb_step (t : pterm) (mem:memory) : (pterm*memory) option =
   | Sum(D m,x,_,n2) -> 
     Some(substitution x m n2, mem )
    
-  | _ -> None  (* Une valeur ne peut pas être réduite *)
+  | _ -> None  
 
 and ltr_cbv_norm (t : pterm) (mem:memory): (pterm *memory) =
   match ltr_ctb_step t mem with
