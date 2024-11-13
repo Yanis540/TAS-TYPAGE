@@ -1,0 +1,1 @@
+let l = ref [] in let _ = l:= [2] in hd ( !l ) + 2

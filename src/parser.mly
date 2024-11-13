@@ -11,6 +11,7 @@ open Ast (* On suppose que les types de données sont dans un fichier Ast.ml *)
 %left MULT DIV   
 %right ASSIGN 
 
+%nonassoc HEAD TAIL  /* Priorité la plus haute pour HEAD/TAIL */
 %type <Ast.pterm> prog
 %type <Ast.pterm_list> pterm_list
 %start prog
@@ -28,8 +29,8 @@ expr:
   | expr MULT expr { Mult ($1, $3) }
   | LBRA pterm_list RBRA { List ($2) }
   | LAMBDA IDENT SEMICOLON expr {Abs($2,$4)}
-  | HEAD expr          { Head $2 }
-  | TAIL expr            { Tail $2 }
+  | HEAD expr           %prec HEAD { Head $2 }
+  | TAIL expr             %prec TAIL{ Tail $2 }
   | IFZERO LPAREN expr RPAREN THEN expr ELSE expr   { IfZero($3,$6,$8)}
   | IFEMPTY LPAREN expr RPAREN THEN expr ELSE expr   { IfEmpty($3,$6,$8)}
 
@@ -39,6 +40,7 @@ expr:
   | DEREF expr                         { DeRef $2 }
   | expr ASSIGN expr                   { Assign ($1, $3) }
   | LPAREN expr RPAREN                 { $2 }
+  | LPAREN RPAREN                 { Unit }
   | expr expr                 { App($1,$2) }
 ;
 pterm_list :
